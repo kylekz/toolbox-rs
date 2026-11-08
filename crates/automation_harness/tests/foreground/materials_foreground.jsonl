@@ -1,0 +1,56 @@
+{"scenario": {"window_size": "1200x800", "foreground": true, "platforms": ["macos", "windows"], "description": "The materials as the screen shows them (docs/appearance.md \"Proving it\"): blur only shows on an active window, in a screen capture, so this takes the focus for a few seconds. The materials window opens in front of a backdrop of saturated stripes and large text, which shows blurred through a translucent material. Run by hand: target/debug/harness-e2e --out target/e2e-materials crates/automation_harness/tests/foreground/materials_foreground.jsonl"}}
+{"cmd": "wait_ready", "timeout_ms": 10000}
+{"cmd": "set_appearance", "mode": "dark", "material": "opaque"}
+{"cmd": "open_materials", "expect_result": {"pointer": "/open", "equals": true}}
+{"cmd": "settle", "window": "materials", "expect": [{"pointer": "/window/active", "equals": true}, {"pointer": "/window/background", "equals": false}, {"pointer": "/applied/material", "equals": "opaque"}]}
+{"cmd": "wait", "ms": 800}
+{"cmd": "screenshot", "window": "materials", "name": "opaque-dark", "source": "screen"}
+
+// macOS: the crate's NSVisualEffectView behind gpui's content, under-window-background then sidebar and hud-window, dark and light.
+{"cmd": "set_appearance", "material": "vibrancy", "platforms": ["macos"], "expect_result": {"pointer": "/appearance/resolved/material", "equals": "vibrancy"}}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/native/vibrancy_view", "equals": true}, {"pointer": "/native/opaque", "equals": false}, {"pointer": "/window/active", "equals": true}]}
+{"cmd": "wait", "ms": 500, "platforms": ["macos"]}
+{"cmd": "screenshot", "window": "materials", "name": "vibrancy-under-window-dark", "source": "screen", "platforms": ["macos"]}
+{"cmd": "set_appearance", "vibrancy": {"material": "sidebar"}, "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": {"pointer": "/native/vibrancy/material", "equals": "sidebar"}}
+{"cmd": "wait", "ms": 500, "platforms": ["macos"]}
+{"cmd": "screenshot", "window": "materials", "name": "vibrancy-sidebar-dark", "source": "screen", "platforms": ["macos"]}
+{"cmd": "set_appearance", "vibrancy": {"material": "hud-window"}, "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": {"pointer": "/native/vibrancy/material", "equals": "hud-window"}}
+{"cmd": "wait", "ms": 500, "platforms": ["macos"]}
+{"cmd": "screenshot", "window": "materials", "name": "vibrancy-hud-dark", "source": "screen", "platforms": ["macos"]}
+{"cmd": "set_appearance", "mode": "light", "vibrancy": {"material": "under-window-background"}, "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/native/forced", "equals": "light"}, {"pointer": "/native/vibrancy/material", "equals": "under-window-background"}]}
+{"cmd": "wait", "ms": 500, "platforms": ["macos"]}
+{"cmd": "screenshot", "window": "materials", "name": "vibrancy-under-window-light", "source": "screen", "platforms": ["macos"]}
+{"cmd": "set_appearance", "vibrancy": {"material": "sidebar"}, "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": {"pointer": "/native/vibrancy/material", "equals": "sidebar"}}
+{"cmd": "wait", "ms": 500, "platforms": ["macos"]}
+{"cmd": "screenshot", "window": "materials", "name": "vibrancy-sidebar-light", "source": "screen", "platforms": ["macos"]}
+// For comparison, gpui's own Blurred (the crate's view taken out first): on macOS 27 it shows the backdrop sharp, with no blur.
+{"cmd": "set_appearance", "mode": "dark", "material": "opaque", "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": {"pointer": "/native/vibrancy_view", "equals": false}}
+{"cmd": "gpui_background", "window": "materials", "background": "blurred", "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/native/opaque", "equals": false}, {"pointer": "/native/vibrancy_view", "equals": false}]}
+{"cmd": "wait", "ms": 500, "platforms": ["macos"]}
+{"cmd": "screenshot", "window": "materials", "name": "gpui-blurred-dark", "source": "screen", "platforms": ["macos"]}
+
+// Windows: what this PC can show (probed, so run it with Transparency effects on and again off), Mica and Acrylic, dark and light. A material the PC can't show captures as Opaque.
+{"cmd": "set_material_support", "probe": true, "platforms": ["windows"]}
+{"cmd": "set_appearance", "mode": "dark", "material": "mica", "platforms": ["windows"]}
+{"cmd": "settle", "window": "materials", "platforms": ["windows"], "expect": {"pointer": "/window/active", "equals": true}}
+{"cmd": "wait", "ms": 800, "platforms": ["windows"]}
+{"cmd": "screenshot", "window": "materials", "name": "mica-dark", "source": "screen", "platforms": ["windows"]}
+{"cmd": "set_appearance", "mode": "light", "platforms": ["windows"]}
+{"cmd": "settle", "window": "materials", "platforms": ["windows"], "expect": {"pointer": "/applied/appearance", "equals": "light"}}
+{"cmd": "wait", "ms": 800, "platforms": ["windows"]}
+{"cmd": "screenshot", "window": "materials", "name": "mica-light", "source": "screen", "platforms": ["windows"]}
+{"cmd": "set_appearance", "material": "acrylic", "platforms": ["windows"]}
+{"cmd": "settle", "window": "materials", "platforms": ["windows"]}
+{"cmd": "wait", "ms": 800, "platforms": ["windows"]}
+{"cmd": "screenshot", "window": "materials", "name": "acrylic-light", "source": "screen", "platforms": ["windows"]}
+{"cmd": "set_appearance", "mode": "dark", "platforms": ["windows"]}
+{"cmd": "settle", "window": "materials", "platforms": ["windows"], "expect": {"pointer": "/applied/appearance", "equals": "dark"}}
+{"cmd": "wait", "ms": 800, "platforms": ["windows"]}
+{"cmd": "screenshot", "window": "materials", "name": "acrylic-dark", "source": "screen", "platforms": ["windows"]}
+{"cmd": "state", "platforms": ["windows"]}

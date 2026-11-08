@@ -5,10 +5,10 @@
 #   script/check --fast   steps 1-4 (no windows open)
 #
 #   1. cargo fmt --check
-#   2. clippy -D warnings: the workspace (gpui_automation with `enabled`, through the harness) and
-#      gpui_automation alone (its no-op stand-ins)
+#   2. clippy -D warnings: the workspace (gpui_automation with `enabled`, through the harness),
+#      gpui_automation alone (its no-op stand-ins) and gpui_appearance with `serde`
 #   3. the gpui boundary: the gpui-free crates never depend on gpui (CLAUDE.md)
-#   4. cargo test --workspace
+#   4. cargo test --workspace, and gpui_appearance with `serde`
 #   5. the harness scenarios through its runner, in the background (on Linux, the runner's own
 #      Xvfb display), into target/e2e-harness
 set -euo pipefail
@@ -39,6 +39,8 @@ step 2 "cargo clippy --workspace --all-targets -- -D warnings"
 cargo clippy --workspace --all-targets -- -D warnings
 step 2 "cargo clippy -p gpui_automation --all-targets -- -D warnings  (the stand-ins)"
 cargo clippy -p gpui_automation --all-targets -- -D warnings
+step 2 "cargo clippy -p gpui_appearance --all-targets --features serde -- -D warnings"
+cargo clippy -p gpui_appearance --all-targets --features serde -- -D warnings
 
 gpui_free_crates=(gpui_automation_protocol gpui_automation_runner toolbox_process toolbox_stills)
 step 3 "gpui boundary: ${gpui_free_crates[*]}"
@@ -53,6 +55,8 @@ echo "ok: none depends on gpui"
 
 step 4 "cargo test --workspace"
 cargo test --workspace
+step 4 "cargo test -p gpui_appearance --features serde"
+cargo test -p gpui_appearance --features serde
 
 if [[ "$fast" == true ]]; then
     echo
@@ -65,7 +69,8 @@ step 5 "cargo build -p automation_harness  (plain binaries for the runner)"
 cargo build -p automation_harness
 step 5 "harness scenarios"
 "$target/debug/harness-e2e" --out "$target/e2e-harness" crates/automation_harness/tests/harness.jsonl \
-    crates/automation_harness/tests/harness_background.jsonl
+    crates/automation_harness/tests/harness_background.jsonl \
+    crates/automation_harness/tests/harness_appearance.jsonl
 
 echo
 echo "script/check: all steps passed"

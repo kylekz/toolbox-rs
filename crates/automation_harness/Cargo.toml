@@ -7,7 +7,7 @@ publish.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Dev-only: a small gpui-component app and its e2e runner that prove gpui_automation end to end"
+description = "Dev-only: a small gpui-component app and its e2e runner that prove gpui_automation and gpui_appearance end to end"
 
 # The app the scenarios in `tests/` drive.
 [[bin]]
@@ -23,6 +23,7 @@ path = "src/bin/harness-e2e.rs"
 anyhow.workspace = true
 gpui.workspace = true
 gpui-component.workspace = true
+gpui_appearance.workspace = true
 gpui_automation = { workspace = true, features = ["enabled"] }
 gpui_automation_runner.workspace = true
 gpui_platform.workspace = true

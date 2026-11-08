@@ -10,9 +10,13 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
   `gpui_automation_runner` and the dev-only `automation_harness` (§2). Every gate passes on
   macOS, including the harness scenarios (126 steps) through the new runner. Windows and Linux
   are checked by CI and the owner's PC.
-- **Phase 2:** `toolbox_process` is built at `0.2.0` (§5a, [docs/process.md](process.md)) and
-  `toolbox_stills` at `0.3.0` (§5a, [docs/stills.md](stills.md)); the apps adopt each from its
-  document, each in its own change.
+- **Phase 2:** `toolbox_process` is built at `0.2.0` (§5a, [docs/process.md](process.md)),
+  `toolbox_stills` at `0.3.0` (§5a, [docs/stills.md](stills.md)) and `gpui_appearance` at `0.4.0`
+  (§5a, [docs/appearance.md](appearance.md)); the apps adopt each from its document, each in its
+  own change. `gpui_appearance` (light/dark followed live with app and automation overrides,
+  Mica/Acrylic on Windows 11, the crate's own vibrancy on macOS) is proved by
+  `harness_appearance.jsonl` and foreground captures on the owner's Mac and on the owner's
+  Windows 11 PC (Mica, Acrylic, the transparency switch on and off).
 - **The apps:** slide and dv are on `v0.1.2`; fc moves onto `v0.1.3`, which adds what its
   runner extensions need (§2.3).
 - **The stack:** `gpui-pre =0.3.11`, `gpui-pre-platform =0.3.11`, `gpui-component =0.9.0`
@@ -243,7 +247,7 @@ Each app's CLAUDE.md and PLAN §14 then point at the shared crate's docs, not th
 - **Licences:** one package new to the tree, `objc2-image-io` (Zlib OR Apache-2.0 OR MIT, as
   the other objc2 crates); no new licence.
 
-### `gpui_appearance`: light/dark and window materials (gpui)
+### `gpui_appearance`: light/dark and window materials (gpui; built, docs/appearance.md)
 The owner raised this from phase 3 because it shapes how every app looks.
 - **Seed:** dv's `dv_ui/src/appearance.rs` (210 lines) and `platform.rs` (285). fc only switches
   between Transparent and Opaque; slide has neither.
@@ -253,13 +257,17 @@ The owner raised this from phase 3 because it shapes how every app looks.
   - Windows 11: Mica (build 22621+) and Acrylic (22000+), and only while "Transparency effects"
     is on. Windows 10 and Linux get Opaque.
   - The app gets a material it can apply, plus a sensible fallback.
-- **macOS vibrancy is real work, not a copy.** gpui's `Blurred` (an `NSVisualEffectView` with its
-  tint and saturation layers stripped, still the same in 0.3.11) shows no blur at all on macOS
-  27: the window is just clear (dv's PLAN D8). So dv ships Opaque on macOS today. The crate would
-  set up its own `NSVisualEffectView` through objc2, with a chosen material and blending, behind
-  gpui's content.
-  - Prove this on the owner's Mac with foreground screen captures; background screenshots never
-    show blur.
+- **macOS vibrancy is real work, not a copy.** gpui's `Blurred` is an `NSVisualEffectView` with
+  its tint and saturation layers stripped. In 0.3.6 its `Selection` material showed no blur at
+  all on macOS 27 (dv's PLAN D8), so dv ships Opaque on macOS today. 0.3.11 switched it to
+  `UnderWindowBackground`, and the foreground captures (2026-11-09) show that it blurs now, but
+  untinted and the same for light, dark, active and inactive. The crate sets up its own plain
+  `NSVisualEffectView` through objc2 instead: a chosen material, blending mode and state, behind
+  gpui's content, with AppKit's tint kept. It is proved on the owner's Mac with foreground screen
+  captures, since background screenshots never show blur.
+- **Not taken:** gpui's `App::set_window_appearance` sets the application's appearance, after
+  which the system's own setting can no longer be read. The crate sets each window's appearance
+  instead.
 - The theme kit (§5b) builds on this crate for its colour tokens per appearance and material.
 
 ### Not extracted, and why

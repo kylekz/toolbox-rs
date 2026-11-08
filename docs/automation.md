@@ -31,7 +31,8 @@ against it and pass against a plain one.
 The crates' own proof is `crates/automation_harness`: a small gpui-component app and its runner.
 `harness.jsonl` covers every command, restarts, selectors, the handshake and the runner's
 hermetic environment; `harness_background.jsonl` (background runs only) a window asked for
-maximized bounds opening windowed and inactive; and a second test drives the harness over the
+maximized bounds opening windowed and inactive; `harness_appearance.jsonl` `gpui_appearance`
+(docs/appearance.md); and a second test drives the harness over the
 named pipe (Windows):
 
 ```bash

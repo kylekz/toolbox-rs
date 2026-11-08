@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 rust-version = "1.98"
 publish = false
@@ -19,6 +19,7 @@ gpui_platform = { package = "gpui-pre-platform", version = "=0.3.11" }
 gpui-component = "=0.9.0"
 
 # ---- internal crates
+gpui_appearance = { path = "crates/gpui_appearance" }
 gpui_automation = { path = "crates/gpui_automation" }
 gpui_automation_protocol = { path = "crates/gpui_automation_protocol" }
 gpui_automation_runner = { path = "crates/gpui_automation_runner" }
@@ -36,9 +37,12 @@ image = { version = "0.25.10", default-features = false, features = ["bmp", "gif
 libc = "0.2"
 log = "0.4"
 objc2 = "0.6"
-# ImageIO and CoreGraphics: `toolbox_stills`' still decoder on macOS.
+# Apple framework bindings, the 0.3.2 family gpui-pre-macos already builds: AppKit and Foundation
+# for `gpui_appearance`'s vibrancy view, ImageIO and CoreGraphics for `toolbox_stills`' decoder.
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false }
 objc2-core-graphics = { version = "0.3.2", default-features = false }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std"] }
 objc2-image-io = { version = "0.3.2", default-features = false }
 png = "0.18"
 # Blocks on a future outside an executor (`toolbox_stills`' tests).

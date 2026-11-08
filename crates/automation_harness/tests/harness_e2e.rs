@@ -62,12 +62,17 @@ fn run_scenarios(harness: &Path, extra: &[&std::ffi::OsStr], out_name: &str, sce
 #[ignore = "opens windows on the real desktop"]
 fn harness_scenarios_pass() {
     let harness = harness();
-    // `harness_background.jsonl` checks what only background mode does.
+    // `harness_background.jsonl` checks what only background mode does; `harness_appearance.jsonl`
+    // proves gpui_appearance.
     run_scenarios(
         &harness,
         &[],
         "e2e-harness",
-        &["harness.jsonl", "harness_background.jsonl"],
+        &[
+            "harness.jsonl",
+            "harness_background.jsonl",
+            "harness_appearance.jsonl",
+        ],
     );
 }
 

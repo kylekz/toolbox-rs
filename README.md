@@ -9,13 +9,15 @@ holds the one copy they share.
 | [`gpui_automation`](crates/gpui_automation) | JSONL automation inside the app: input, windows, screenshots, named targets, background windows. No-op stand-ins without its `enabled` feature. | yes |
 | [`gpui_automation_protocol`](crates/gpui_automation_protocol) | The wire format, the JSON-pointer matcher and the builtin commands' arguments. | no |
 | [`gpui_automation_runner`](crates/gpui_automation_runner) | The end-to-end scenario runner as a library; each app wraps it in a small `e2e` bin with its own fixtures. | no |
-| [`automation_harness`](crates/automation_harness) | Dev-only: the app and runner that prove the three above end to end. | yes |
+| [`gpui_appearance`](crates/gpui_appearance) | Light/dark followed live with app and automation overrides, and window materials: Mica/Acrylic on Windows 11, real vibrancy on macOS. [docs/appearance.md](docs/appearance.md) | yes |
+| [`automation_harness`](crates/automation_harness) | Dev-only: the app and runner that prove the automation crates and `gpui_appearance` end to end. | yes |
 | [`toolbox_process`](crates/toolbox_process) | Running other programs: a process tree of their own (a Unix group, a Windows job), timeouts, cancellation, graceful stops, streaming with stdin, and no console window on Windows. [docs/process.md](docs/process.md) | no |
 | [`toolbox_stills`](crates/toolbox_stills) | Still images through the OS decoders (ImageIO, WIC): sniffing, upright colour-managed decodes from files or bytes, HEIC and AVIF, a decode pool and a thumbnail cache. [docs/stills.md](docs/stills.md) | no |
 
 How automation works, the protocol and the scenario format: [docs/automation.md](docs/automation.md).
 Running other programs, and how each app adopts it: [docs/process.md](docs/process.md).
 Still images, and how slide and fc adopt them: [docs/stills.md](docs/stills.md).
+Light/dark and materials, and how each app adopts them: [docs/appearance.md](docs/appearance.md).
 What comes next and why: [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
@@ -24,10 +26,11 @@ Apps depend on a tag, never on a branch:
 
 ```toml
 [workspace.dependencies]
-gpui_automation = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.3.0" }
-gpui_automation_runner = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.3.0" }
-toolbox_process = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.3.0" }
-toolbox_stills = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.3.0" }
+gpui_appearance = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.4.0" }
+gpui_automation = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.4.0" }
+gpui_automation_runner = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.4.0" }
+toolbox_process = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.4.0" }
+toolbox_stills = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.4.0" }
 ```
 
 toolbox-rs pins the gpui stack exactly (`gpui-pre =0.3.11`, `gpui-component =0.9.0`). An app on a
@@ -42,6 +45,7 @@ it, in the app's `.cargo/config.toml` or its manifest:
 gpui_automation = { path = "../toolbox-rs/crates/gpui_automation" }
 gpui_automation_protocol = { path = "../toolbox-rs/crates/gpui_automation_protocol" }
 gpui_automation_runner = { path = "../toolbox-rs/crates/gpui_automation_runner" }
+gpui_appearance = { path = "../toolbox-rs/crates/gpui_appearance" }
 toolbox_process = { path = "../toolbox-rs/crates/toolbox_process" }
 toolbox_stills = { path = "../toolbox-rs/crates/toolbox_stills" }
 ```
@@ -49,7 +53,7 @@ toolbox_stills = { path = "../toolbox-rs/crates/toolbox_stills" }
 ## Checking
 
 ```bash
-script/check          # fmt, clippy (both gpui_automation shapes), the gpui-free crates, tests, harness e2e
+script/check          # fmt, clippy (both gpui_automation shapes, gpui_appearance with serde), the gpui-free crates, tests, harness e2e
 script/check --fast   # the same without opening windows
 ```
 

@@ -1,0 +1,63 @@
+{"scenario": {"window_size": "1200x800", "description": "gpui_appearance end to end (docs/appearance.md): the probed support, the app's preferences and the automation pin resolved app-wide, and the materials window applying them, read back from AppKit on macOS. A background window is inactive, so vibrancy shows flat here; tests/foreground/materials_foreground.jsonl is the look"}}
+{"cmd": "wait_ready", "timeout_ms": 10000}
+// What the OS can show, probed at startup: vibrancy on macOS (with Reduce transparency off), Opaque on Linux; on Windows it depends on the build and the Transparency effects switch, and Opaque is always there.
+{"cmd": "state", "expect_result": [{"pointer": "/appearance/mode", "equals": "system"}, {"pointer": "/appearance/pinned", "equals": null}, {"pointer": "/appearance/available", "contains": "opaque"}, {"pointer": "/appearance/vibrancy/material", "equals": "under-window-background"}]}
+{"cmd": "state", "platforms": ["macos"], "expect_result": [{"pointer": "/appearance/available", "equals": ["vibrancy", "opaque"]}, {"pointer": "/appearance/material", "equals": "vibrancy"}, {"pointer": "/appearance/resolved/material", "equals": "vibrancy"}]}
+{"cmd": "state", "platforms": ["linux"], "expect_result": [{"pointer": "/appearance/available", "equals": ["opaque"]}, {"pointer": "/appearance/resolved/material", "equals": "opaque"}]}
+{"cmd": "state", "platforms": ["windows"], "expect_result": [{"pointer": "/appearance/material", "equals": "mica"}]}
+
+// A material the platform can't show is kept as asked but resolves to Opaque.
+{"cmd": "set_material_support", "expect_result": [{"pointer": "/appearance/available", "equals": ["opaque"]}, {"pointer": "/appearance/resolved/material", "equals": "opaque"}]}
+{"cmd": "set_appearance", "material": "acrylic", "expect_result": [{"pointer": "/appearance/material", "equals": "acrylic"}, {"pointer": "/appearance/resolved/material", "equals": "opaque"}]}
+{"cmd": "set_material_support", "mica": true, "acrylic": true, "expect_result": [{"pointer": "/appearance/available", "equals": ["mica", "acrylic", "opaque"]}, {"pointer": "/appearance/resolved/material", "equals": "acrylic"}]}
+{"cmd": "set_appearance", "material": "vibrancy", "expect_result": {"pointer": "/appearance/resolved/material", "equals": "opaque"}}
+// Asking the OS again puts the probed support back.
+{"cmd": "set_material_support", "probe": true, "platforms": ["macos"], "expect_result": [{"pointer": "/appearance/available", "equals": ["vibrancy", "opaque"]}, {"pointer": "/appearance/resolved/material", "equals": "vibrancy"}]}
+{"cmd": "set_material_support", "probe": true, "platforms": ["linux"], "expect_result": {"pointer": "/appearance/available", "equals": ["opaque"]}}
+{"cmd": "set_appearance", "material": "nacre", "expect_error": "material must be"}
+
+// Light/dark: System follows the system (stood in for by set_system_appearance), a fixed mode doesn't, and the automation pin beats both.
+{"cmd": "set_appearance", "mode": "system", "expect_result": {"pointer": "/appearance/mode", "equals": "system"}}
+{"cmd": "set_system_appearance", "appearance": "light", "expect_result": [{"pointer": "/appearance/system", "equals": "light"}, {"pointer": "/appearance/resolved/appearance", "equals": "light"}]}
+{"cmd": "set_system_appearance", "appearance": "dark", "expect_result": {"pointer": "/appearance/resolved/appearance", "equals": "dark"}}
+{"cmd": "set_appearance", "mode": "light", "expect_result": [{"pointer": "/appearance/system", "equals": "dark"}, {"pointer": "/appearance/resolved/appearance", "equals": "light"}]}
+{"cmd": "pin_appearance", "appearance": "dark", "expect_result": [{"pointer": "/appearance/pinned", "equals": "dark"}, {"pointer": "/appearance/mode", "equals": "light"}, {"pointer": "/appearance/resolved/appearance", "equals": "dark"}]}
+{"cmd": "pin_appearance", "appearance": null, "expect_result": [{"pointer": "/appearance/pinned", "equals": null}, {"pointer": "/appearance/resolved/appearance", "equals": "light"}]}
+{"cmd": "pin_appearance", "appearance": "sepia", "expect_error": "appearance must be"}
+
+// The materials window opens with what is resolved and follows every change. macOS reads back what AppKit has: the window's own NSAppearance, whether it is opaque, and the crate's NSVisualEffectView with its style.
+{"cmd": "set_appearance", "mode": "dark", "material": "vibrancy", "platforms": ["macos"]}
+{"cmd": "open_materials", "expect_result": {"pointer": "/open", "equals": true}, "expect": {"pointer": "/materials/open", "equals": true}}
+{"cmd": "settle", "window": "materials", "expect": [{"pointer": "/view", "equals": "materials"}, {"pointer": "/window/background", "equals": true}]}
+{"cmd": "state", "window": "materials", "platforms": ["macos"], "expect_result": [{"pointer": "/applied/appearance", "equals": "dark"}, {"pointer": "/applied/forced", "equals": "dark"}, {"pointer": "/applied/material", "equals": "vibrancy"}, {"pointer": "/applied/vibrancy/material", "equals": "under-window-background"}, {"pointer": "/native/forced", "equals": "dark"}, {"pointer": "/native/opaque", "equals": false}, {"pointer": "/native/vibrancy_view", "equals": true}, {"pointer": "/native/vibrancy", "equals": {"material": "under-window-background", "blending": "behind-window", "state": "follows-window"}}]}
+{"cmd": "screenshot", "window": "materials", "name": "vibrancy-dark", "platforms": ["macos"]}
+{"cmd": "set_appearance", "vibrancy": {"material": "sidebar", "state": "active"}, "platforms": ["macos"], "expect_result": {"pointer": "/appearance/vibrancy", "equals": {"material": "sidebar", "blending": "behind-window", "state": "active"}}}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/applied/vibrancy/material", "equals": "sidebar"}, {"pointer": "/native/vibrancy", "equals": {"material": "sidebar", "blending": "behind-window", "state": "active"}}]}
+{"cmd": "pin_appearance", "appearance": "light", "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/applied/appearance", "equals": "light"}, {"pointer": "/native/forced", "equals": "light"}, {"pointer": "/native/vibrancy_view", "equals": true}]}
+{"cmd": "screenshot", "window": "materials", "name": "vibrancy-light", "platforms": ["macos"]}
+// System mode, unpinned: the window has no appearance of its own, so it follows the system live.
+{"cmd": "pin_appearance", "appearance": null, "platforms": ["macos"]}
+{"cmd": "set_appearance", "mode": "system", "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/applied/forced", "equals": null}, {"pointer": "/native/forced", "equals": null}]}
+// Opaque takes the view out and makes the window opaque again; vibrancy puts it back.
+{"cmd": "set_appearance", "mode": "dark", "material": "opaque", "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/applied/material", "equals": "opaque"}, {"pointer": "/applied/vibrancy", "equals": null}, {"pointer": "/native/opaque", "equals": true}, {"pointer": "/native/vibrancy_view", "equals": false}]}
+{"cmd": "screenshot", "window": "materials", "name": "opaque-dark", "platforms": ["macos"]}
+{"cmd": "set_appearance", "material": "vibrancy", "platforms": ["macos"]}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/native/opaque", "equals": false}, {"pointer": "/native/vibrancy_view", "equals": true}, {"pointer": "/native/vibrancy/material", "equals": "sidebar"}]}
+// Reduce transparency (stood in for): the window falls back to Opaque by itself.
+{"cmd": "set_material_support", "platforms": ["macos"], "expect_result": {"pointer": "/appearance/resolved/material", "equals": "opaque"}}
+{"cmd": "settle", "window": "materials", "platforms": ["macos"], "expect": [{"pointer": "/applied/material", "equals": "opaque"}, {"pointer": "/native/vibrancy_view", "equals": false}]}
+
+// Windows and Linux: what the crate applied (nothing reads it back there). Mica and Acrylic are stood in for, so the steps hold on any build.
+{"cmd": "set_material_support", "mica": true, "acrylic": true, "platforms": ["windows", "linux"]}
+{"cmd": "set_appearance", "mode": "light", "material": "mica", "platforms": ["windows", "linux"]}
+{"cmd": "settle", "window": "materials", "platforms": ["windows", "linux"], "expect": [{"pointer": "/applied/appearance", "equals": "light"}, {"pointer": "/applied/forced", "equals": "light"}, {"pointer": "/applied/material", "equals": "mica"}, {"pointer": "/native", "equals": null}]}
+{"cmd": "screenshot", "window": "materials", "name": "mica-light", "platforms": ["windows", "linux"]}
+{"cmd": "set_appearance", "mode": "dark", "material": "acrylic", "platforms": ["windows", "linux"]}
+{"cmd": "settle", "window": "materials", "platforms": ["windows", "linux"], "expect": [{"pointer": "/applied/appearance", "equals": "dark"}, {"pointer": "/applied/material", "equals": "acrylic"}]}
+{"cmd": "screenshot", "window": "materials", "name": "acrylic-dark", "platforms": ["windows", "linux"]}
+{"cmd": "set_material_support", "platforms": ["windows", "linux"]}
+{"cmd": "settle", "window": "materials", "platforms": ["windows", "linux"], "expect": {"pointer": "/applied/material", "equals": "opaque"}}
+{"cmd": "screenshot", "window": "materials", "name": "opaque-dark", "platforms": ["windows", "linux"]}

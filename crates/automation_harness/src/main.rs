@@ -16,9 +16,13 @@
 //! scenarios) and `--counter <n>` (the counter's start value, so scenarios
 //! can see which arguments a restart used).
 //!
+//! `state.appearance` and the `materials` window (`materials.rs`) prove `gpui_appearance`.
+//!
 //! `state.env` reports the variables the runner sets for an app
 //! (`HARNESS_DATA_DIR`, `E2E_DATA_DIR`, `E2E_OUT_DIR`), so `harness.jsonl` can
 //! prove the runner's hermetic environment without a real app.
+
+mod materials;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -169,6 +173,10 @@ struct Harness {
     /// Confirm presses in the dialog, which slides in as it opens.
     dialog_confirms: u32,
     second: Option<(WindowHandle<Root>, Entity<SecondView>)>,
+    materials: Option<(
+        WindowHandle<materials::MaterialsView>,
+        Entity<materials::MaterialsView>,
+    )>,
     data_dir: Option<PathBuf>,
 }
 
@@ -200,6 +208,7 @@ impl Harness {
             slow: None,
             dialog_confirms: 0,
             second: None,
+            materials: None,
             data_dir,
         }
     }
@@ -242,6 +251,25 @@ impl Harness {
             Err(err) => log::error!("opening the second window failed: {err:#}"),
         }
         cx.notify();
+    }
+
+    fn materials_open(
+        &self,
+        cx: &App,
+    ) -> Option<&(
+        WindowHandle<materials::MaterialsView>,
+        Entity<materials::MaterialsView>,
+    )> {
+        self.materials
+            .as_ref()
+            .filter(|(handle, _)| cx.windows().contains(&(*handle).into()))
+    }
+
+    fn open_materials(&mut self, window: &Window, cx: &mut Context<Self>) -> Result<()> {
+        if self.materials_open(cx).is_none() {
+            self.materials = Some(materials::open(window.bounds(), cx)?);
+        }
+        Ok(())
     }
 
     fn start_slow_increment(&mut self, cx: &mut Context<Self>) {
@@ -549,6 +577,11 @@ impl AutomationHost for Harness {
         {
             return json!({"view": "second", "clicks": view.read(cx).clicks});
         }
+        if let Some((handle, view)) = self.materials_open(cx)
+            && window.window_handle() == (*handle).into()
+        {
+            return materials::window_state(view.read(cx), window);
+        }
         let dragging = cx.has_active_drag();
         let env: serde_json::Map<String, Value> = RUNNER_ENV
             .iter()
@@ -584,6 +617,8 @@ impl AutomationHost for Harness {
                 "open": self.second_open(cx).is_some(),
                 "clicks": self.second_open(cx).map(|(_, view)| view.read(cx).clicks),
             },
+            "appearance": materials::app_state(cx),
+            "materials": {"open": self.materials_open(cx).is_some()},
             "data_dir": self.data_dir.as_ref().map(|dir| dir.display().to_string()),
             // Let runner tests check that runs are hermetic without a real app
             // itself: the data dir (`null` when unset), and the working
@@ -604,6 +639,12 @@ impl AutomationHost for Harness {
             "reset_drag",
             "fail",
             "slow_set_counter",
+            "open_materials",
+            "set_appearance",
+            "pin_appearance",
+            "set_system_appearance",
+            "set_material_support",
+            "gpui_background",
         ]
     }
 
@@ -611,10 +652,20 @@ impl AutomationHost for Harness {
         &mut self,
         cmd: &str,
         args: Value,
-        _window: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Option<Result<Value>> {
+        if let Some(result) = materials::command(cmd, &args, cx) {
+            return Some(result);
+        }
         Some(match cmd {
+            "open_materials" => self
+                .open_materials(window, cx)
+                .map(|()| json!({"open": true})),
+            "gpui_background" => match self.materials_open(cx) {
+                Some((_, view)) => materials::gpui_background(&view.clone(), &args, window, cx),
+                None => Err(anyhow!("gpui_background needs open_materials first")),
+            },
             "set_counter" => args
                 .get("value")
                 .and_then(Value::as_i64)
@@ -703,6 +754,14 @@ fn main() -> Result<()> {
 fn launch(args: Args, cx: &mut App) -> Result<()> {
     gpui_component::init(cx);
     gpui_component::Theme::change(gpui_component::ThemeMode::Dark, None, cx);
+    gpui_appearance::init(
+        gpui_appearance::Setup {
+            support: gpui_appearance::MaterialSupport::probe(),
+            preferences: gpui_appearance::Preferences::default(),
+            vibrancy: gpui_appearance::Vibrancy::default(),
+        },
+        cx,
+    );
     cx.bind_keys([
         KeyBinding::new("ctrl-i", Increment, Some("Harness")),
         KeyBinding::new("ctrl-k ctrl-r", Reset, Some("Harness")),

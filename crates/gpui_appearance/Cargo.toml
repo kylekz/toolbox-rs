@@ -1,0 +1,54 @@
+[package]
+name = "gpui_appearance"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Light/dark and window materials for gpui apps: the system setting followed live, app and automation overrides, Mica/Acrylic on Windows 11 and real vibrancy on macOS"
+
+[lib]
+doctest = false
+
+# Serialize/Deserialize for the setting types, spelled as their `key()`s, for apps' settings files.
+[features]
+serde = ["dep:serde"]
+
+[dependencies]
+gpui.workspace = true
+log.workspace = true
+serde = { workspace = true, optional = true }
+
+# DWM backdrops and dark title bars, the build number and the "Transparency effects" switch.
+[target.'cfg(windows)'.dependencies]
+raw-window-handle.workspace = true
+windows-sys = { workspace = true, features = [
+    "Wdk_System_SystemServices",
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_System_Registry",
+    "Win32_System_SystemInformation",
+] }
+
+# The crate's own NSVisualEffectView behind gpui's view, and the window's NSAppearance.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2.workspace = true
+objc2-app-kit = { workspace = true, features = [
+    "NSAccessibility",
+    "NSAppearance",
+    "NSGraphics",
+    "NSResponder",
+    "NSUserInterfaceItemIdentification",
+    "NSView",
+    "NSVisualEffectView",
+    "NSWindow",
+    "NSWorkspace",
+] }
+objc2-foundation = { workspace = true, features = ["NSArray", "NSEnumerator", "NSGeometry", "NSString"] }
+raw-window-handle.workspace = true
+
+[dev-dependencies]
+gpui = { workspace = true, features = ["test-support"] }
+serde_json.workspace = true

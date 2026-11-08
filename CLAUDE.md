@@ -6,8 +6,9 @@ keep what is one app's business in that app (its fixtures, its commands, its val
 
 - Spec: `docs/PLAN.md` (decisions O1–O6, the crates, the phases; cited as `PLAN §N` / `O<n>`),
   `docs/automation.md` (the automation protocol, the scenario format, the runner),
-  `docs/process.md` (`toolbox_process` and how each app adopts it) and `docs/stills.md`
-  (`toolbox_stills` and how the apps adopt it). Read the
+  `docs/process.md` (`toolbox_process` and how each app adopts it), `docs/stills.md`
+  (`toolbox_stills` and how the apps adopt it) and `docs/appearance.md` (`gpui_appearance`:
+  light/dark, materials, each app's adoption). Read the
   relevant sections before changing anything; when code and spec disagree, fix one of them in the
   same change.
 - The apps consume tags (`tag = "v0.1.0"`), never branches. Tags are the owner's: no agent pushes
@@ -31,6 +32,7 @@ keep what is one app's business in that app (its fixtures, its commands, its val
 | `gpui_automation_runner` | the scenario runner as a library: `RunnerApp`, `Fixture`, `main` | **never** |
 | `toolbox_process` | running other programs: own process tree, timeouts, cancel, streaming (docs/process.md) | **never** |
 | `toolbox_stills` | still images: sniffing, OS decoding (ImageIO, WIC) to upright sRGB, the decode pool, the thumbnail cache | **never** |
+| `gpui_appearance` | light/dark (system, app override, automation pin) and window materials (`docs/appearance.md`) | yes |
 | `automation_harness` | dev-only: the harness app and its runner, the crates' end-to-end proof | yes |
 
 A gpui dependency in a "never" crate fails `script/check` (`cargo tree`): the runner and the
@@ -68,6 +70,9 @@ The harness opens windows on the real desktop.
 - Linux GUI runs go on the runner's own Xvfb display, never the session's (WSLg's windows open on
   the owner's Windows desktop); `--host-display` only when the owner asks for a look.
 - Verify by `state` assertions; screenshots are physical pixels.
+- Blur only shows on an active window in a screen capture, so materials are looked at through
+  the foreground scenario `crates/automation_harness/tests/foreground/materials_foreground.jsonl`.
+  It takes the screen for a few seconds: tell the owner before running it.
 
 ## Commands
 
