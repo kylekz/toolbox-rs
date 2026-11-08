@@ -1,0 +1,33 @@
+[package]
+name = "automation_harness"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Dev-only: a small gpui-component app and its e2e runner that prove gpui_automation end to end"
+
+# The app the scenarios in `tests/` drive.
+[[bin]]
+name = "harness"
+path = "src/main.rs"
+
+# The scenario runner set up for the harness, as each app sets up its own.
+[[bin]]
+name = "harness-e2e"
+path = "src/bin/harness-e2e.rs"
+
+[dependencies]
+anyhow.workspace = true
+gpui.workspace = true
+gpui-component.workspace = true
+gpui_automation = { workspace = true, features = ["enabled"] }
+gpui_automation_runner.workspace = true
+gpui_platform.workspace = true
+log.workspace = true
+serde_json.workspace = true
+
+# Text and shaders on macOS without the Metal toolchain.
+[target.'cfg(target_os = "macos")'.dependencies]
+gpui_platform = { workspace = true, features = ["font-kit", "runtime_shaders"] }

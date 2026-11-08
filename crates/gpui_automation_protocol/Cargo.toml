@@ -1,0 +1,21 @@
+[package]
+name = "gpui_automation_protocol"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The automation wire protocol, the JSON matcher and the builtin commands' arguments, without gpui"
+
+[lib]
+doctest = false
+
+# gpui: never, not even transitively (`script/check`): the scenario runner builds on this crate.
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true

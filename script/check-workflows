@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# The GitHub Actions workflows checked: actionlint (syntax,
+# expressions, and every `run:` block through shellcheck when it is installed) and zizmor (the
+# security audits: template injection, credentials left in checkouts, excessive permissions,
+# unpinned actions, cache poisoning and the rest), both strict: the local run of what CI's
+# workflows job runs through their own actions. zizmor's online audits (impostor commits,
+# known-vulnerable actions) run when GH_TOKEN is set.
+#
+# The tools come from PATH, else target/tools/bin (a checkout-local install). When either isn't
+# installed it says so and exits 0 without checking anything: CI's workflows job runs both on
+# every push and pull request regardless.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+PATH="$PATH:$root/target/tools/bin"
+
+missing=()
+for tool in actionlint zizmor; do
+    if ! command -v "$tool" > /dev/null 2>&1; then
+        missing+=("$tool")
+    fi
+done
+if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "script/check-workflows: SKIPPED, nothing was checked: not installed: ${missing[*]}" \
+        "(brew install actionlint zizmor; winget install rhysd.actionlint zizmor.zizmor)" >&2
+    exit 0
+fi
+
+echo "==> actionlint"
+actionlint
+echo "ok: actionlint"
+
+echo "==> zizmor"
+if [[ -n "${GH_TOKEN:-}" ]]; then
+    zizmor --pedantic .github
+else
+    zizmor --pedantic --offline .github
+fi

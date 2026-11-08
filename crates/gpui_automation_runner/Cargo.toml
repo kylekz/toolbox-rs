@@ -1,0 +1,39 @@
+[package]
+name = "gpui_automation_runner"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The e2e scenario runner as a library: each app wraps it in a small bin with its own fixtures"
+
+[lib]
+doctest = false
+
+# gpui: never, not even transitively (`script/check`). It drives the app over its stdio.
+[dependencies]
+anyhow.workspace = true
+gpui_automation_protocol.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Console",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+    "Win32_UI_Accessibility",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+# The Xvfb display a run starts for itself: ended with SIGTERM, tied to the runner's life
+# (`PR_SET_PDEATHSIG`), and a display's lock read for a live server (`display`).
+[target.'cfg(target_os = "linux")'.dependencies]
+libc.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+tempfile.workspace = true

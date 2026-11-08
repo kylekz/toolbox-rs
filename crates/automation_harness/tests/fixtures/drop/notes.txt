@@ -1,0 +1,1 @@
+Fixture for the drop_files command in harness.jsonl.

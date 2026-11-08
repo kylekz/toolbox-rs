@@ -1,0 +1,12 @@
+# build output
+/target/
+
+# local env
+.env*
+
+# local (per-machine) claude code overrides, and the worktrees agents work in
+.claude/settings.local.json
+.claude/worktrees/
+/CLAUDE.local.md
+
+.DS_Store

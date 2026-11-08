@@ -1,0 +1,49 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+license = "MIT"
+repository = "https://github.com/kylekz/toolbox-rs"
+
+[workspace.dependencies]
+# ---- UI stack (docs/PLAN.md O5): toolbox-rs owns the pin. An app on a toolbox-rs tag uses exactly
+# these versions; bump the whole family together, with a new minor tag.
+gpui = { package = "gpui-pre", version = "=0.3.11" }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.11" }
+gpui-component = "=0.9.0"
+
+# ---- internal crates
+gpui_automation = { path = "crates/gpui_automation" }
+gpui_automation_protocol = { path = "crates/gpui_automation_protocol" }
+gpui_automation_runner = { path = "crates/gpui_automation_runner" }
+
+# ---- everything else, alphabetical
+anyhow = "1.0"
+clap = { version = "4.6", features = ["derive", "env"] }
+core-graphics = "0.24"
+futures = "0.3"
+libc = "0.2"
+log = "0.4"
+objc2 = "0.6"
+png = "0.18"
+pretty_assertions = "1.4"
+raw-window-handle = "0.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tempfile = "3"
+windows-sys = "0.61"
+x11rb = "0.13"
+
+[profile.dev]
+debug = "limited"
+
+# gpui is unusably slow unoptimised; dependencies build at opt-level 2 even in dev, while the
+# workspace's own crates stay at 0 for fast incremental builds.
+[profile.dev.package."*"]
+opt-level = 2
+debug = false

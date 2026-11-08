@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Every gate, in order; run it before a commit. It stops at the first failing step.
+#
+#   script/check          steps 1-5
+#   script/check --fast   steps 1-4 (no windows open)
+#
+#   1. cargo fmt --check
+#   2. clippy -D warnings: the workspace (gpui_automation with `enabled`, through the harness) and
+#      gpui_automation alone (its no-op stand-ins)
+#   3. the gpui boundary: the protocol and runner crates never depend on gpui (CLAUDE.md)
+#   4. cargo test --workspace
+#   5. the harness scenarios through its runner, in the background (on Linux, the runner's own
+#      Xvfb display), into target/e2e-harness
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+
+fast=false
+for arg in "$@"; do
+    case "$arg" in
+        --fast) fast=true ;;
+        *)
+            echo "script/check: unknown option $arg" >&2
+            exit 2
+            ;;
+    esac
+done
+
+step() {
+    echo
+    echo "==> [$1] $2"
+}
+
+step 1 "cargo fmt --all --check"
+cargo fmt --all --check
+
+step 2 "cargo clippy --workspace --all-targets -- -D warnings"
+cargo clippy --workspace --all-targets -- -D warnings
+step 2 "cargo clippy -p gpui_automation --all-targets -- -D warnings  (the stand-ins)"
+cargo clippy -p gpui_automation --all-targets -- -D warnings
+
+step 3 "gpui boundary: gpui_automation_protocol and gpui_automation_runner"
+for crate in gpui_automation_protocol gpui_automation_runner; do
+    if cargo tree -p "$crate" -e normal --prefix none | grep -q '^gpui-pre '; then
+        echo "script/check: $crate depends on gpui:" >&2
+        cargo tree -p "$crate" -e normal -i gpui-pre >&2
+        exit 1
+    fi
+done
+echo "ok: neither depends on gpui"
+
+step 4 "cargo test --workspace"
+cargo test --workspace
+
+if [[ "$fast" == true ]]; then
+    echo
+    echo "script/check: steps 1-4 passed (--fast: no harness scenarios)"
+    exit 0
+fi
+
+target="${CARGO_TARGET_DIR:-$root/target}"
+step 5 "cargo build -p automation_harness  (plain binaries for the runner)"
+cargo build -p automation_harness
+step 5 "harness scenarios"
+"$target/debug/harness-e2e" --out "$target/e2e-harness" crates/automation_harness/tests/harness.jsonl \
+    crates/automation_harness/tests/harness_background.jsonl
+
+echo
+echo "script/check: all steps passed"
