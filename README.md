@@ -13,11 +13,13 @@ holds the one copy they share.
 | [`automation_harness`](crates/automation_harness) | Dev-only: the app and runner that prove the automation crates and `gpui_appearance` end to end. | yes |
 | [`toolbox_process`](crates/toolbox_process) | Running other programs: a process tree of their own (a Unix group, a Windows job), timeouts, cancellation, graceful stops, streaming with stdin, and no console window on Windows. [docs/process.md](docs/process.md) | no |
 | [`toolbox_stills`](crates/toolbox_stills) | Still images through the OS decoders (ImageIO, WIC): sniffing, upright colour-managed decodes from files or bytes, HEIC and AVIF, a decode pool and a thumbnail cache. [docs/stills.md](docs/stills.md) | no |
+| [`toolbox_store`](crates/toolbox_store) | An app's SQLite database on rusqlite: one writer and pooled readers, migrations that carry on from sqlez's `migrations` table, the foreign-database guard, checked backups and a key-value table. [docs/store.md](docs/store.md) | no |
 
 How automation works, the protocol and the scenario format: [docs/automation.md](docs/automation.md).
 Running other programs, and how each app adopts it: [docs/process.md](docs/process.md).
 Still images, and how slide and fc adopt them: [docs/stills.md](docs/stills.md).
 Light/dark and materials, and how each app adopts them: [docs/appearance.md](docs/appearance.md).
+The database crate, and how slide and fc move onto it from sqlez: [docs/store.md](docs/store.md).
 What comes next and why: [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
@@ -48,6 +50,7 @@ gpui_automation_runner = { path = "../toolbox-rs/crates/gpui_automation_runner" 
 gpui_appearance = { path = "../toolbox-rs/crates/gpui_appearance" }
 toolbox_process = { path = "../toolbox-rs/crates/toolbox_process" }
 toolbox_stills = { path = "../toolbox-rs/crates/toolbox_stills" }
+toolbox_store = { path = "../toolbox-rs/crates/toolbox_store" }
 ```
 
 ## Checking
@@ -59,5 +62,6 @@ script/check --fast   # the same without opening windows
 
 ## Licence
 
-MIT ([LICENSE](LICENSE)). No GPL code lives here: crates derived from Zed's GPL crates, such as
-`sqlez`, stay in the apps that use them.
+MIT ([LICENSE](LICENSE)). No GPL code lives here: crates derived from Zed's GPL crates stay in the
+apps that use them. `toolbox_store` replaces the apps' copies of Zed's `sqlez` with rusqlite (MIT),
+reading the databases sqlez made by their format alone.

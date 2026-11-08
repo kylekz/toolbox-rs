@@ -17,6 +17,9 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
   Mica/Acrylic on Windows 11, the crate's own vibrancy on macOS) is proved by
   `harness_appearance.jsonl` and foreground captures on the owner's Mac and on the owner's
   Windows 11 PC (Mica, Acrylic, the transparency switch on and off).
+  `toolbox_store` is built at `0.5.0` (§5a, [docs/store.md](store.md)): the apps' SQLite layer on
+  rusqlite in place of their GPL sqlez copies, carrying on from sqlez's `migrations` table, proved
+  on databases built as sqlez leaves them and on a copy of fc's shipped `v2.db`.
 - **The apps:** slide and dv are on `v0.1.2`; fc moves onto `v0.1.3`, which adds what its
   runner extensions need (§2.3).
 - **The stack:** `gpui-pre =0.3.11`, `gpui-pre-platform =0.3.11`, `gpui-component =0.9.0`
@@ -38,7 +41,7 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
 |---|---|---|
 | O1 | Repository | `toolbox-rs`, public, created by the owner. Checked out at `~/code/toolbox-rs`. |
 | O2 | How apps depend on it | A git dependency pinned to a tag (`tag = "v0.1.0"`). Never published to crates.io. While developing across repos, a local `[patch."https://github.com/…"]` path override, never committed. |
-| O3 | Licence | Every crate is `MIT`; no GPL code goes in the repo. `sqlez` (Zed's GPL-3.0-or-later crate) stays copied inside each app that uses it (slide, fc). A git submodule or git dependency on Zed doesn't work: Zed's repo is about 540 MB, today's `sqlez` pulls in Zed's internal `collections`, `path` and `gpui_util` crates and follows Zed's main branch, and it lacks our `Connection::open_read_only`, which slide's database guard and backups use. The toolbox README links to Zed's `crates/sqlez` and lists our local changes. `open_router` stays in the apps too: fc's copy is shaped to fc. |
+| O3 | Licence | Every crate is `MIT`; no GPL code goes in the repo. `sqlez` (Zed's GPL-3.0-or-later crate) stays copied inside each app that uses it (slide, fc) until the app moves onto `toolbox_store` (§5a). A git submodule or git dependency on Zed doesn't work: Zed's repo is about 540 MB, today's `sqlez` pulls in Zed's internal `collections`, `path` and `gpui_util` crates and follows Zed's main branch, and it lacks our `Connection::open_read_only`, which slide's database guard and backups use. The toolbox README links to Zed's `crates/sqlez` and lists our local changes. `open_router` stays in the apps too: fc's copy is shaped to fc. |
 | O4 | Existing scenarios | The e2e test scripts (`tests/e2e/*.jsonl`: 42 in diff, 27 in slide, 39 in fc) keep running unchanged on the shared runner. Core keys and actions keep their names; each app's own keys move into its extension (§3). |
 | O5 | gpui pin | toolbox-rs owns the pin. An app on a toolbox tag must use exactly that tag's gpui and gpui-kit versions (Cargo builds one gpui per app). A gpui-kit bump is a new toolbox minor tag; each app moves when it's ready. |
 | O6 | Protocol and API design | Left to the agent (§4). |
@@ -270,6 +273,30 @@ The owner raised this from phase 3 because it shapes how every app looks.
   instead.
 - The theme kit (§5b) builds on this crate for its colour tokens per appearance and material.
 
+### `toolbox_store`: the apps' SQLite database (built; docs/store.md)
+Moved into phase 2 from "after phase 2" (2026-11-09).
+- **Why:**
+  - slide and fc each carry a GPL copy of Zed's `sqlez`, which isn't published as a crate.
+  - Both built the same store layer on top of it, and the copies have drifted: the single
+    writer, migrations, the foreign-database guard, backup plus integrity check, and a key-value
+    table.
+  - On `rusqlite` (0.41, MIT, the same bundled C SQLite underneath), that layer is one MIT crate.
+- **What it is:** `Database` (one writer behind a mutex, pooled `query_only` readers, every read
+  one snapshot), `Database::open` (guard, `quick_check`, daily and pre-migration backups, WAL,
+  migrations), `Schema`, `Backups` (including restore), `Kv`, `OsPath`/`OsPathBuf` and a typed
+  `Error`. docs/store.md §3 records which app's design each piece took, and why.
+- **Existing databases keep working:** the migrations read and write sqlez's own `migrations`
+  table, so steps that already ran aren't run again. Tests build databases exactly as sqlez
+  leaves them, in plain SQL. A copy of fc's shipped `v2.db` opened with fc's real steps.
+- **Stays in the apps:** their tables, queries and column types; their file names and error
+  wording; fc's FTS5 check, restore marker and JSON values.
+- **Size of each move (counted 2026-11-09):**
+  - slide: about 60 query call sites, about 1 day;
+  - fc: about 400, about 2–3 days;
+  - mostly mechanical (docs/store.md §4–§6). The PLAN's earlier 250/650 over-counted.
+- **Order:** slide first, since it's smaller. Each app first pins `libsqlite3-sys =0.39.1`
+  under sqlez, because Cargo allows one SQLite per build.
+
 ### Not extracted, and why
 - **Video players: not shared; fc stays on libmpv** (decided 2026-11-09).
   - **Why mpv can't serve both:** it breaks slide's no-bundled-binaries rule, costs 220–245 MB
@@ -295,24 +322,6 @@ The owner raised this from phase 3 because it shapes how every app looks.
   patterns, a locked JSONL call log, `times`, exit codes). Extract `toolbox_mock_exe` if a third
   CLI mock appears.
 - **open_router:** shaped to each app (see O3).
-
-### After phase 2: `toolbox_store` on rusqlite, replacing sqlez (agreed 2026-11-09)
-- **Why:**
-  - slide and fc each carry a GPL copy of Zed's `sqlez`, which isn't published as a crate.
-  - Both also built the same store layer on top of it, which has drifted: the single writer
-    thread, migrations, the foreign-database guard, backup plus integrity check, and a key-value
-    table.
-  - Moving onto `rusqlite` (0.41, MIT, the standard SQLite crate, the same C SQLite underneath)
-    lets that layer become one MIT crate in the toolbox.
-- **Size:**
-  - slide: about 250 query call sites in `slide_core/src/store` (about 4.3k lines);
-  - fc: about 650 in `fc_core/src/store` (about 8.6k lines);
-  - mostly mechanical. sqlez's `Bind`/`Column` become rusqlite's `ToSql`/`FromSql`, and
-    `select_row_bound(sql)?(params)` becomes `query_row(sql, params, …)`.
-  - Rough estimate: slide 1–2 days, fc 2–4 days, plus the shared crate.
-- **Must keep existing databases working:** the new migrations read sqlez's `migrations` table,
-  so steps that already ran aren't run again.
-- **Order:** after phase 2. slide first, since it's smaller.
 
 ## 5b. Phase 3: `gpui_theme_kit` (scaffolding only)
 Every app ends up building the same scaffolding around its own values. Terrarium adds sprite

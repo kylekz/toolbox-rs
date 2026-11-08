@@ -7,8 +7,9 @@ keep what is one app's business in that app (its fixtures, its commands, its val
 - Spec: `docs/PLAN.md` (decisions O1–O6, the crates, the phases; cited as `PLAN §N` / `O<n>`),
   `docs/automation.md` (the automation protocol, the scenario format, the runner),
   `docs/process.md` (`toolbox_process` and how each app adopts it), `docs/stills.md`
-  (`toolbox_stills` and how the apps adopt it) and `docs/appearance.md` (`gpui_appearance`:
-  light/dark, materials, each app's adoption). Read the
+  (`toolbox_stills` and how the apps adopt it), `docs/appearance.md` (`gpui_appearance`:
+  light/dark, materials, each app's adoption) and `docs/store.md` (`toolbox_store`: its API, the
+  sqlez → rusqlite move, each app's adoption). Read the
   relevant sections before changing anything; when code and spec disagree, fix one of them in the
   same change.
 - The apps consume tags (`tag = "v0.1.0"`), never branches. Tags are the owner's: no agent pushes
@@ -32,6 +33,7 @@ keep what is one app's business in that app (its fixtures, its commands, its val
 | `gpui_automation_runner` | the scenario runner as a library: `RunnerApp`, `Fixture`, `main` | **never** |
 | `toolbox_process` | running other programs: own process tree, timeouts, cancel, streaming (docs/process.md) | **never** |
 | `toolbox_stills` | still images: sniffing, OS decoding (ImageIO, WIC) to upright sRGB, the decode pool, the thumbnail cache | **never** |
+| `toolbox_store` | an app's SQLite database on rusqlite: writer and reads, sqlez-compatible migrations, guard, backups, kv | **never** |
 | `gpui_appearance` | light/dark (system, app override, automation pin) and window materials (`docs/appearance.md`) | yes |
 | `automation_harness` | dev-only: the harness app and its runner, the crates' end-to-end proof | yes |
 
@@ -46,6 +48,8 @@ A gpui dependency in a "never" crate fails `script/check` (`cargo tree`): the ru
 - **Licence.** Every crate is MIT and carries its own copy of the root `LICENSE` (an app's
   third-party notices read it from the crate folder); a new crate copies it too. Nothing derived from GPL code (Zed's `sqlez`, `open_router`,
   editor, project, …) comes here; gpui and gpui-component are Apache-2.0 and fine to build on.
+  `toolbox_store` reads sqlez's `migrations` table by its documented format (docs/store.md), never
+  by its code.
 - **Errors.** `anyhow` in the runner and the driver's command handling, `thiserror` enums in
   libraries with typed errors. No `unwrap()`/`expect()` outside tests unless the message states
   the invariant.

@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 rust-version = "1.98"
 publish = false
@@ -24,11 +24,13 @@ gpui_automation = { path = "crates/gpui_automation" }
 gpui_automation_protocol = { path = "crates/gpui_automation_protocol" }
 gpui_automation_runner = { path = "crates/gpui_automation_runner" }
 toolbox_process = { path = "crates/toolbox_process" }
+toolbox_store = { path = "crates/toolbox_store" }
 
 # ---- everything else, alphabetical
 anyhow = "1.0"
 # `toolbox_stills`' decode pool: its queues and its replies.
 async-channel = "2.5"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 clap = { version = "4.6", features = ["derive", "env"] }
 core-graphics = "0.24"
 futures = "0.3"
@@ -49,6 +51,9 @@ png = "0.18"
 pollster = "0.4"
 pretty_assertions = "1.4"
 raw-window-handle = "0.6"
+# The bundled SQLite (toolbox_store, docs/store.md "Dependencies"). `fallible_uint` binds and reads
+# `u64`/`usize`, which sqlez did and the apps' queries use; the conversion fails instead of wrapping.
+rusqlite = { version = "0.41", features = ["bundled", "fallible_uint"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # The thumbnail cache's keys (`toolbox_stills::ThumbKey`).

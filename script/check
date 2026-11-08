@@ -42,7 +42,7 @@ cargo clippy -p gpui_automation --all-targets -- -D warnings
 step 2 "cargo clippy -p gpui_appearance --all-targets --features serde -- -D warnings"
 cargo clippy -p gpui_appearance --all-targets --features serde -- -D warnings
 
-gpui_free_crates=(gpui_automation_protocol gpui_automation_runner toolbox_process toolbox_stills)
+gpui_free_crates=(gpui_automation_protocol gpui_automation_runner toolbox_process toolbox_stills toolbox_store)
 step 3 "gpui boundary: ${gpui_free_crates[*]}"
 for crate in "${gpui_free_crates[@]}"; do
     if cargo tree -p "$crate" -e normal --prefix none | grep -q '^gpui-pre '; then

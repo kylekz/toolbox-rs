@@ -1,0 +1,25 @@
+[package]
+name = "toolbox_store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "An app's SQLite database on rusqlite: one writer, pooled readers, sqlez-compatible migrations, the foreign-database guard, checked backups and a key-value table"
+
+[lib]
+doctest = false
+
+# gpui: never (`script/check`).
+[dependencies]
+chrono.workspace = true
+log.workspace = true
+rusqlite.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+thiserror.workspace = true
