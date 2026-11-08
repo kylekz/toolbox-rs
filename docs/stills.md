@@ -189,9 +189,12 @@ in its `\\?\` form (`\\?\UNC\` for a share), so any length decodes.
 
 `cargo test -p toolbox_stills` runs slide's tests with the crate's own fixtures
 (`tests/fixtures/`, about 400 KB; their README says where they come from). The OS-specific tests
-are `cfg`'d: HEIC/AVIF/TIFF decoding on macOS and Windows, the `MAX_PATH` tests on Windows.
-CI runs them on all three systems (`.github/workflows/ci.yml`): the WIC code is only ever
-compiled and run there, as no Windows machine is at hand.
+are `cfg`'d: TIFF decoding on macOS and Windows, the `MAX_PATH` tests on Windows. HEIC and AVIF
+decodes run where `probe_codecs` finds the codec and print a skip where it doesn't. They always
+run on macOS. GitHub's Windows runners have no Store codecs, so there CI checks WIC's JPEG, PNG,
+GIF, BMP, WebP and TIFF decodes, bytes in memory and long paths, and only the "missing codec"
+side of HEIC and AVIF. WIC's HEIC decode (its `colr` profile included) is checked on a Windows PC
+with the codecs installed.
 
 ## Dependencies and licences
 

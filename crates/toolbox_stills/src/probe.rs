@@ -68,13 +68,23 @@ fn decodes(codec: Codec, format: ImageFormat, sample: &'static [u8]) -> bool {
 mod tests {
     use super::*;
 
+    /**
+     * Each sample decodes at its size where its codec is installed: always on macOS
+     * (`imageio_has_both_codecs`); on Windows only with the Store codecs, which GitHub's runners
+     * don't have.
+     */
     #[cfg(any(target_os = "macos", windows))]
     #[test]
     fn the_samples_decode_at_their_size() {
-        for (format, sample) in [
-            (ImageFormat::Heif, PROBE_HEIC),
-            (ImageFormat::Avif, PROBE_AVIF),
+        let codecs = probe_codecs();
+        for (codec, format, sample) in [
+            (Codec::Heic, ImageFormat::Heif, PROBE_HEIC),
+            (Codec::Avif, ImageFormat::Avif, PROBE_AVIF),
         ] {
+            if !codecs.supports(codec) {
+                eprintln!("skipping {codec}: this machine has no codec for it");
+                continue;
+            }
             let fitted = os::decode(Source::Bytes(sample), format, (64, 64)).unwrap();
             assert_eq!(fitted.source, (64, 64));
             let image = fitted.image;

@@ -14,6 +14,19 @@ fn fixture(name: &str) -> PathBuf {
 /// No limit on an animation's frames.
 const UNLIMITED: usize = usize::MAX;
 
+/**
+ * Whether this machine decodes `format`: HEIC and AVIF need the OS decoder and, on Windows, the
+ * Store codecs, which GitHub's Windows runners don't have. Those tests run where the probe passes
+ * (always on macOS, `probe::tests` makes sure) and say so where it doesn't.
+ */
+fn decodes(format: ImageFormat) -> bool {
+    let supported = Codec::of(format).is_none_or(|codec| probe_codecs().supports(codec));
+    if !supported {
+        eprintln!("skipping {format:?}: this machine has no codec for it");
+    }
+    supported
+}
+
 fn still(name: &str, format: ImageFormat, bounds: (u32, u32)) -> Bgra {
     match decode(&fixture(name), Picture::Image(format), bounds, UNLIMITED).unwrap() {
         Decoded::Still(image) => image,
@@ -98,10 +111,15 @@ fn orientation_6_comes_out_portrait() {
 #[cfg(any(target_os = "macos", windows))]
 #[test]
 fn heic_and_avif_decode_upright() {
+    if decodes(ImageFormat::Avif) {
+        let avif = still("still.avif", ImageFormat::Avif, (640, 640));
+        assert_eq!((avif.width(), avif.height()), (640, 360));
+    }
+    if !decodes(ImageFormat::Heif) {
+        return;
+    }
     let heic = still("still.heic", ImageFormat::Heif, (540, 540));
     assert_eq!((heic.width(), heic.height()), (432, 540));
-    let avif = still("still.avif", ImageFormat::Avif, (640, 640));
-    assert_eq!((avif.width(), avif.height()), (640, 360));
     let p3 = still("p3-64.heic", ImageFormat::Heif, (64, 64));
     assert_eq!((p3.width(), p3.height()), (64, 64));
     assert!(
@@ -243,7 +261,7 @@ fn failures_say_why() {
 
     /*
      * With the codec present (the probe passed), a broken HEIC is broken, not missing; without
-     * an OS decoder, the codec is missing.
+     * it (no OS decoder, or no Store codec on Windows), the codec is missing.
      */
     let heic = dir.path().join("broken.heic");
     std::fs::write(&heic, b"\0\0\0\x18ftypheic\0\0\0\0mif1heic").unwrap();
@@ -254,7 +272,7 @@ fn failures_say_why() {
         UNLIMITED,
     )
     .unwrap_err();
-    if cfg!(any(target_os = "macos", windows)) {
+    if probe_codecs().heic {
         assert!(matches!(error, DecodeError::Decode(_)), "{error:?}");
     } else {
         assert!(
@@ -531,13 +549,7 @@ fn thumbnails_of_every_fixture_still_and_animation() {
             Some(500),
         ),
     ] {
-        /* Without an OS decoder, HEIC and AVIF don't decode (`failures_say_why`). */
-        if cfg!(not(any(target_os = "macos", windows)))
-            && matches!(
-                picture.still_format(),
-                ImageFormat::Heif | ImageFormat::Avif
-            )
-        {
+        if !decodes(picture.still_format()) {
             continue;
         }
         let thumbnail = thumbnail(&fixture(name), picture, 320)
@@ -658,8 +670,8 @@ fn wic_takes_long_paths_in_their_verbatim_form() {
 }
 
 /**
- * A HEIC (WIC's alone: no fallback) deep enough that its path passes `MAX_PATH` decodes, whatever
- * the system's long-path setting (docs/stills.md "Long paths").
+ * A TIFF (WIC's alone: no fallback, and no Store codec) deep enough that its path passes
+ * `MAX_PATH` decodes, whatever the system's long-path setting (docs/stills.md "Long paths").
  */
 #[cfg(windows)]
 #[test]
@@ -670,17 +682,21 @@ fn a_still_past_max_path_decodes() {
         deep.push("a_folder_name_long_enough_to_pass_max_path_soon");
     }
     std::fs::create_dir_all(&deep).unwrap();
-    let path = deep.join("still.heic");
-    std::fs::copy(fixture("still.heic"), &path).unwrap();
+    let path = deep.join("still.tiff");
+    std::fs::write(
+        &path,
+        super::container::tests::directory_first_tiff(64, 32, 32, false),
+    )
+    .unwrap();
     match decode(
         &path,
-        Picture::Image(ImageFormat::Heif),
-        (540, 540),
+        Picture::Image(ImageFormat::Tiff),
+        (640, 640),
         UNLIMITED,
     )
     .unwrap()
     {
-        Decoded::Still(image) => assert_eq!((image.width(), image.height()), (432, 540)),
+        Decoded::Still(image) => assert_eq!((image.width(), image.height()), (64, 32)),
         Decoded::Animation(_) => panic!("decoded as an animation"),
     }
 }
