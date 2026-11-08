@@ -1,12 +1,14 @@
 //! A made-up app for the runner's own tests, with one extension of each kind: a header key
-//! (`mock`), a runner action (`mock_log`), a variable (`${demo_mock_log}`) and an environment
-//! variable only its fixture sets (`DEMO_MOCK`).
+//! (`mock`), a runner action (`mock_log`), a variable (`${demo_mock_log}`), an environment
+//! variable only its fixture sets (`DEMO_MOCK`), a default the header's `env` may replace
+//! (`DEMO_KEY`) and variables no header may set (`DEMO_LIVE*`).
 
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -49,10 +51,18 @@ impl RunnerApp for DemoApp {
         }
     }
 
+    fn check_env(&self, env: &BTreeMap<String, String>) -> Result<()> {
+        match env.keys().find(|name| name.starts_with("DEMO_LIVE")) {
+            Some(name) => bail!("the scenario header's env can't set {name}: live runs are ours"),
+            None => Ok(()),
+        }
+    }
+
     fn fixture(&self, header: &DemoHeader, cx: &FixtureCx) -> Result<Box<dyn Fixture<DemoAction>>> {
         Ok(Box::new(DemoFixture {
             mock: header.mock.clone(),
             log: cx.out_dir.join("mock.log"),
+            default_key: !cx.env.contains_key("DEMO_KEY"),
         }))
     }
 }
@@ -60,6 +70,8 @@ impl RunnerApp for DemoApp {
 struct DemoFixture {
     mock: Option<String>,
     log: PathBuf,
+    /// The header's `env` names no `DEMO_KEY`, so the fixture sets one.
+    default_key: bool,
 }
 
 impl Fixture<DemoAction> for DemoFixture {
@@ -71,6 +83,10 @@ impl Fixture<DemoAction> for DemoFixture {
         self.mock
             .iter()
             .map(|mock| ("DEMO_MOCK".into(), Some(mock.into())))
+            .chain(
+                self.default_key
+                    .then(|| ("DEMO_KEY".into(), Some("dummy".into()))),
+            )
             .collect()
     }
 

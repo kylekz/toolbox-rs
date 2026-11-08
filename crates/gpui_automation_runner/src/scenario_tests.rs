@@ -500,3 +500,14 @@ fn the_apps_variables_and_env_are_reserved() {
     );
     assert!(err.contains("the runner sets it"), "{err}");
 }
+
+#[test]
+fn the_app_checks_the_headers_env() {
+    let err = format!(
+        "{:#}",
+        parse("{\"scenario\": {\"env\": {\"DEMO_LIVE_X\": \"1\"}}}\n{\"cmd\": \"state\"}")
+            .unwrap_err()
+    );
+    assert!(err.contains("can't set DEMO_LIVE_X"), "{err}");
+    parse("{\"scenario\": {\"env\": {\"DEMO_KEY\": \"x\"}}}\n{\"cmd\": \"state\"}").unwrap();
+}

@@ -20,8 +20,8 @@ Apps depend on a tag, never on a branch:
 
 ```toml
 [workspace.dependencies]
-gpui_automation = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.1.0" }
-gpui_automation_runner = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.1.0" }
+gpui_automation = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.1.3" }
+gpui_automation_runner = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.1.3" }
 ```
 
 toolbox-rs pins the gpui stack exactly (`gpui-pre =0.3.11`, `gpui-component =0.9.0`). An app on a

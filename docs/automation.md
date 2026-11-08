@@ -303,8 +303,19 @@ fn main() -> ExitCode { gpui_automation_runner::main(DvRunner { mock_gh: None })
   until `expect_result` holds, for a log another process writes. It may follow a `quit` when it
   has no `expect`.
 - **The fixture** is made per scenario before the first launch: `vars` (`${...}`), `env` and
-  `args` for every launch, `run` for actions, and `finish` after the last exit (no child
-  process outlived the app, say).
+  `args` for every launch, `run` for actions, and `finish` after the last exit, whatever the
+  outcome (no child process outlived the app, say; its error fails a passing scenario and is
+  added to a failing one's message). `FixtureCx` says where the scenario's files are and holds
+  the header's `env`, which every launch gets before the fixture's own `env`: a fixture that
+  sets only a default (a dummy API key) leaves a variable the header names alone.
+- **Header env checks**: `RunnerApp::check_env` refuses a header's `env` at load beyond the
+  runner's own rules (fc: no `FC_LIVE*`, a thumbnail server only on this machine).
+- **Sidecars**: `Sidecar::start` runs a helper process for the fixture (a mock server) as the
+  runner's child, as the app is: in the kill-on-close job on Windows, its stderr in a log of
+  the fixture's choosing, killed when the fixture drops it. It must print `{"port": N}` as its
+  first JSON line on stdout (other lines are passed on to the runner's stderr) within the
+  timeout; `Sidecar::request` then sends it one HTTP/1.1 request on `127.0.0.1:<port>` and
+  reads the whole response (`HttpResponse`: status and body), failing on ctrl-c.
 - **Reserved names**: an app's header keys, actions and variables may not be the runner's own;
   the runner refuses to start otherwise, so a key added here later fails loudly instead of being
   quietly taken by an app. A header's `env` may not set the fixture's `RESERVED_ENV`.
@@ -596,7 +607,7 @@ Depend on the crate unconditionally and turn the driver on from the app's own fe
 
 ```toml
 [dependencies]
-gpui_automation = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.1.0" }
+gpui_automation = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.1.3" }
 
 [features]
 automation = ["gpui_automation/enabled"]

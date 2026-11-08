@@ -10,7 +10,8 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
   `gpui_automation_runner` and the dev-only `automation_harness` (§2). Every gate passes on
   macOS, including the harness scenarios (126 steps) through the new runner. Windows and Linux
   are checked by CI and the owner's PC.
-- **Next:** tag `v0.1.0`, then move slide onto it (§5).
+- **The apps:** slide and dv are on `v0.1.2`; fc moves onto `v0.1.3`, which adds what its
+  runner extensions need (§2.3).
 - **The stack:** `gpui-pre =0.3.11`, `gpui-pre-platform =0.3.11`, `gpui-component =0.9.0`
   (gpui-kit 0.9). Each is pinned on its own, as the apps do, not through the `gpui-kit` umbrella.
   Rust 1.98.1, edition 2024, resolver 3, as in all three apps.
@@ -79,8 +80,15 @@ crate alone, so building it never compiles gpui (`script/check` asserts it).
   - the env prefix and the data-dir variable;
   - the default window size and the platforms;
   - the manifest dir the workspace is found from.
-- **Still to come, with fc's move:** a generic helper for a sidecar process that announces its
-  port (fc's `http.rs`, `read_announced_port`).
+- **For fixtures (fc's move, `v0.1.3`):**
+  - `Sidecar`: a helper process (fc's mock OpenRouter server) started as the runner's child,
+    in its kill-on-close job on Windows, that announces `{"port": N}` and takes HTTP requests
+    on it (fc's `http.rs` and `read_announced_port`);
+  - `FixtureCx::env`, the header's `env`, so a fixture's defaults (fc's dummy API keys) give
+    way to a header's and a sidecar gets the app's environment;
+  - `RunnerApp::check_env`, load-time checks of the header's `env` (fc refuses `FC_LIVE*`);
+  - `Fixture::finish` runs after the last exit whatever the outcome, so a failed scenario
+    still reaps the processes its app left (fc's orphan check).
 
 ## 3. The app boundary
 

@@ -314,6 +314,7 @@ fn run_in(
             data_dir,
             workspace: &config.workspace,
             target_dir: &config.target_dir,
+            env: &scenario.header.env,
         },
     );
     let fixture = match fixture {
@@ -359,10 +360,7 @@ fn run_in(
         ));
     }
 
-    let outcome = match session
-        .drive()
-        .and_then(|steps| Ok(session.launcher.fixture.finish().map(|()| steps)?))
-    {
+    let outcome = match session.drive() {
         Ok(steps) => Outcome::Passed {
             steps,
             screenshots: session.screenshots,
@@ -383,7 +381,26 @@ fn run_in(
         }
     };
     session.app.shutdown(Duration::from_secs(5));
-    outcome
+    finished(outcome, session.launcher.fixture.finish())
+}
+
+/// `outcome` after the fixture's [`crate::Fixture::finish`]: its error fails a scenario that
+/// passed and is added to a failure's message.
+fn finished(outcome: Outcome, finish: Result<()>) -> Outcome {
+    let Err(err) = finish else {
+        return outcome;
+    };
+    match outcome {
+        Outcome::Passed { .. } => Outcome::Failed {
+            line: None,
+            message: format!("after the last step: {err:#}"),
+        },
+        Outcome::Failed { line, message } => Outcome::Failed {
+            line,
+            message: format!("{message}\n  also: {err:#}"),
+        },
+        Outcome::Interrupted => Outcome::Interrupted,
+    }
 }
 
 fn substituted_args(args: &[String], vars: &[(&str, String)]) -> Vec<String> {
@@ -946,6 +963,7 @@ mod tests {
                 data_dir: &data_dir,
                 workspace: &config.workspace,
                 target_dir: &config.target_dir,
+                env: &scenario.header.env,
             },
         )
         .unwrap();
@@ -1047,6 +1065,50 @@ mod tests {
         assert_eq!(&args[6..], ["--player", "fake"]);
         let names: Vec<&str> = launcher.vars.iter().map(|(name, _)| *name).collect();
         assert_eq!(names, ["data_dir", "out_dir", "workspace", "demo_mock_log"]);
+    }
+
+    #[test]
+    fn fixtures_see_the_headers_env() {
+        let config = config();
+        let plain = scenario(r#"{"cmd": "state"}"#);
+        let command = launcher(&config, &plain).command();
+        assert_eq!(envs(&command)["DEMO_KEY"].as_deref(), Some("dummy"));
+        let keyed =
+            scenario("{\"scenario\": {\"env\": {\"DEMO_KEY\": \"\"}}}\n{\"cmd\": \"state\"}");
+        let command = launcher(&config, &keyed).command();
+        assert_eq!(
+            envs(&command)["DEMO_KEY"].as_deref(),
+            Some(""),
+            "the header's"
+        );
+    }
+
+    #[test]
+    fn finish_fails_a_pass_and_adds_to_a_failure() {
+        let passed = || Outcome::Passed {
+            steps: 3,
+            screenshots: 0,
+        };
+        assert!(matches!(finished(passed(), Ok(())), Outcome::Passed { .. }));
+        let Outcome::Failed { line, message } = finished(passed(), Err(anyhow!("an orphan")))
+        else {
+            panic!("a pass with an orphan fails");
+        };
+        assert_eq!(line, None);
+        assert_eq!(message, "after the last step: an orphan");
+        let failed = Outcome::Failed {
+            line: Some(4),
+            message: "no frame".into(),
+        };
+        let Outcome::Failed { line, message } = finished(failed, Err(anyhow!("an orphan"))) else {
+            panic!("a failure stays one");
+        };
+        assert_eq!(line, Some(4));
+        assert_eq!(message, "no frame\n  also: an orphan");
+        assert!(matches!(
+            finished(Outcome::Interrupted, Err(anyhow!("an orphan"))),
+            Outcome::Interrupted
+        ));
     }
 
     #[test]

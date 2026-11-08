@@ -332,7 +332,7 @@ fn parse_header(header: Value, ext: &dyn Extension, path: &Path) -> Result<Heade
         }
     }
     let mut header: Header = serde_json::from_value(Value::Object(core))?;
-    ext.check_header(&app, path)?;
+    ext.check_header(&app, &header.env, path)?;
     header.app = app;
     Ok(header)
 }

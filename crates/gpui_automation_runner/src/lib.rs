@@ -12,9 +12,11 @@
 mod app;
 mod display;
 mod foreground;
+mod http;
 mod process;
 mod run;
 mod scenario;
+mod sidecar;
 #[cfg(test)]
 mod testing;
 
@@ -28,8 +30,10 @@ use anyhow::{Context as _, Result, bail};
 
 use crate::app::Extension;
 pub use crate::app::{Fixture, FixtureCx, NoAction, NoFixture, NoHeader, Profile, RunnerApp};
+pub use crate::http::HttpResponse;
 use crate::run::{Config, Outcome};
 use crate::scenario::Scenario;
+pub use crate::sidecar::Sidecar;
 
 fn usage(profile: &Profile, app_options: &str) -> String {
     let name = profile.name;

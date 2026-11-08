@@ -3,6 +3,7 @@
 //! serves them for a scenario ([`Fixture`]), such as a mock server or a fake `gh`
 //! (docs/automation.md "Runner extensions").
 
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -49,6 +50,12 @@ pub struct FixtureCx<'a> {
     pub workspace: &'a Path,
     /// Cargo's target folder, for the app's own helper binaries (`<target>/debug/mock_gh`).
     pub target_dir: &'a Path,
+    /**
+     * The header's `env`, which every launch gets before the fixture's own ([`Fixture::env`]):
+     * a variable the fixture only gives a default leaves one named here alone, and a sidecar
+     * it starts can be given the same environment as the app.
+     */
+    pub env: &'a BTreeMap<String, String>,
 }
 
 /// An app's half of the runner. Each app has a small `e2e` bin:
@@ -98,6 +105,13 @@ pub trait RunnerApp: Send + Sync + 'static {
         Ok(())
     }
 
+    /// Load-time checks of the header's `env` beyond the runner's own (it may not set the
+    /// runner's or the fixture's variables): variables no scenario of the app may set, say.
+    fn check_env(&self, env: &BTreeMap<String, String>) -> Result<()> {
+        let _ = env;
+        Ok(())
+    }
+
     /// The fixture serving one scenario run, made before its app's first launch and dropped
     /// after its last exit.
     fn fixture(
@@ -139,8 +153,11 @@ pub trait Fixture<A>: Send {
         None
     }
 
-    /// After the app's last exit, before the scenario counts as passed: checks such as that no
-    /// child process outlived the app.
+    /**
+     * After the app's last exit, whatever the scenario's outcome so far: checks such as that no
+     * child process outlived the app, and their cleanup. An error fails a scenario that passed
+     * and is added to the message of one that failed.
+     */
     fn finish(&mut self) -> Result<()> {
         Ok(())
     }
@@ -172,8 +189,13 @@ pub(crate) trait Extension: Sync {
     fn vars(&self) -> &'static [&'static str];
     fn reserved_env(&self) -> &'static [&'static str];
     fn app_profile(&self) -> Profile;
-    /// Deserializes and checks the app's part of a header.
-    fn check_header(&self, header: &Map<String, Value>, scenario_path: &Path) -> Result<()>;
+    /// Deserializes and checks the app's part of a header, and checks its `env`.
+    fn check_header(
+        &self,
+        header: &Map<String, Value>,
+        env: &BTreeMap<String, String>,
+        scenario_path: &Path,
+    ) -> Result<()>;
     /// Deserializes an action line (`{"gh_log": {...}}`).
     fn check_action(&self, action: &Value) -> Result<()>;
     fn app_fixture(
@@ -221,9 +243,15 @@ impl<T: RunnerApp> Extension for T {
         RunnerApp::profile(self)
     }
 
-    fn check_header(&self, header: &Map<String, Value>, scenario_path: &Path) -> Result<()> {
+    fn check_header(
+        &self,
+        header: &Map<String, Value>,
+        env: &BTreeMap<String, String>,
+        scenario_path: &Path,
+    ) -> Result<()> {
         let typed: T::Header = typed_header(header)?;
-        self.check(&typed, scenario_path)
+        self.check(&typed, scenario_path)?;
+        self.check_env(env)
     }
 
     fn check_action(&self, action: &Value) -> Result<()> {
