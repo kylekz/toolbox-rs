@@ -66,6 +66,9 @@
 // stop moving, so it lands on it rather than where it was a frame before.
 {"cmd": "click", "target": "dialog/open"}
 {"cmd": "click", "target": "dialog/confirm", "expect": {"pointer": "/dialog_confirms", "equals": 1}}
+// The dialog also leaves over a quarter second, and its backdrop takes clicks until it has gone:
+// wait it out before opening it again (a software renderer, as on CI, draws it out slower).
+{"cmd": "wait", "ms": 600}
 {"cmd": "click", "target": "dialog/open"}
 {"cmd": "click", "target": "dialog/confirm", "expect": {"pointer": "/dialog_confirms", "equals": 2}}
 {"cmd": "wait", "ms": 50, "expect_result": {"pointer": "/waited_ms", "equals": 50}}
