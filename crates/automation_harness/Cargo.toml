@@ -28,6 +28,10 @@ gpui_platform.workspace = true
 log.workspace = true
 serde_json.workspace = true
 
+# gpui's Linux backends: without them the window never draws (the runner's Xvfb is X11).
+[target.'cfg(target_os = "linux")'.dependencies]
+gpui_platform = { workspace = true, features = ["wayland", "x11"] }
+
 # Text and shaders on macOS without the Metal toolchain.
 [target.'cfg(target_os = "macos")'.dependencies]
 gpui_platform = { workspace = true, features = ["font-kit", "runtime_shaders"] }

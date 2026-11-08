@@ -232,40 +232,23 @@ The owner raised this from phase 3 because it shapes how every app looks.
 - The theme kit (§5b) builds on this crate for its colour tokens per appearance and material.
 
 ### Not extracted, and why
-- **Video players: not yet. There is a staged path to one engine** (researched 2026-11-09).
-  - **The aim:** alhazen (slide's engine: pure Rust plus OS decoders, nothing bundled) for both
-    apps, retiring fc's libmpv (the 121 MB DLL, the macOS source build, the private mirror).
+- **Video players: not shared; fc stays on libmpv** (decided 2026-11-09).
   - **Why mpv can't serve both:** it breaks slide's no-bundled-binaries rule, costs 220–245 MB
     per pre-rolled slot against alhazen's 104 MB, and can't show a native view and a GPUI frame
     together, which slide's ≤ 1 vsync cuts need.
-  - **The gate is rendering cost in GPUI.** Hardware-decoded frames reach the screen without a
-    CPU copy only on macOS (`Window::paint_surface`, `420f` pixel buffers, a fixed BT.601
-    matrix). gpui-pre-windows' `draw_surfaces` does nothing, and wgpu (Linux) ignores surfaces
-    too. On Windows, alhazen costs 46–78% of a core per 4K60 stream, against fc's bar of ≤ 50%
-    and mpv's 18–21%.
-  - **Stages:**
-    1. **slide, 3–5 days.** Zero-copy on macOS: alhazen's native VideoToolbox frames through
-       `paint_surface`, converted on the GPU to BT.601 `420f` (or a shader patch if that fails).
-       Measure against today's 34–48% of a core.
-    2. **The real gate, 1.5–3 weeks.** A Windows surface in gpui-pre-windows: a D3D11 texture
-       shared from alhazen's decoder device and drawn by GPUI. **This means carrying a patched
-       gpui-pre-windows (a `[patch]`, ideally sent upstream), the owner's call.** Go on only if
-       it reaches about ≤ 25% of a core per 4K60 stream on the PC. It helps slide even if fc
-       never moves.
-    3. **fc, 3–5 weeks.** Add to alhazen, each change meant to go upstream:
-       - pitch-preserving speed: a time-stretcher before the audio ring, and a clock that knows
-         the rate;
-       - frame step;
-       - decode-only frames before a seek target, plus a keyframe scrub;
-       - a gapless A–B loop from a second slot pre-rolled at A. This beats mpv's 23–58 ms wrap.
-       
-       Run it in fc as a second engine behind fc's existing player API, judged by fc's own
-       acceptance timings on the PC.
-    4. **If stage 3 passes:** a shared `toolbox_player` crate with the common types (about
-       30–40% of them), the fake engine and clock, and capability flags (speed, step, A–B,
-       pre-roll). libmpv retires, kept as a fallback for a while. If stage 2 or 3 fails, keep
-       both engines and share only the fake-engine test harness.
-  - Slide's seven alhazen patches should go upstream along the way.
+  - **Why alhazen can't serve fc:** fc tried alhazen behind its own player API (a trial branch,
+    since removed). On the Mac it played 4K at 60 fps in one player and in four tiles, but:
+    - it has no rotation, which fc needs;
+    - it has no keyframe seek: a drag on the seek bar costs 0.6–1.3 s against mpv's 40 ms, and
+      an exact 8K seek 2.3–3.9 s against 25–110 ms;
+    - it costs 1.3–2× mpv's CPU and 2–3× its memory in four tiles;
+    - it lacks speed, frame step and A–B loop.
+  - **What stays useful for slide alone:** zero-copy video on macOS (`Window::paint_surface`)
+    and, if ever worth a gpui patch, a Windows surface in gpui-pre-windows (whose
+    `draw_surfaces` does nothing); slide measured 46–78% of a core per 4K60 stream there.
+    Slide's alhazen patches should go upstream either way.
+  - **Shareable later, if either player is reworked:** the fake-engine test harness (clock,
+    media, simulated engine), which both apps took from folio.
 - **WSL:** about 1.9k lines, mostly installing and launching dv's own Linux build. The generic
   layer is small: listing distros, running `/bin/sh` scripts through `wsl.exe`, `\\wsl.localhost`
   path mapping and the sandbox seam. Extract it when a second app needs WSL.
@@ -332,7 +315,7 @@ than our own structs; check that when it's built.
    - most refined copies: slide and fc.
 5. **Not shared:**
    - theme values and keymap tables;
-   - the players, until stage 4 of §5a;
+   - the players (§5a);
    - fc's thumbnail and cover code;
    - `mock_openrouter`.
    
