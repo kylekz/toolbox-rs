@@ -42,8 +42,9 @@ const MAX_WAIT: Duration = Duration::from_secs(120);
 /// condition.
 const POLL: Duration = Duration::from_millis(50);
 
-/// Longest a click on a target waits for it to stop moving before pressing where it was last
-/// drawn (a target that never settles, such as text under auto-scroll, is still clicked).
+/// Longest a click on a target waits for it to appear and then to stop moving before pressing
+/// where it was last drawn (a target that never settles, such as text under auto-scroll, is
+/// still clicked).
 const STEADY_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// How far a target's centre may move between two frames and still count as steady: an eased
@@ -642,7 +643,9 @@ impl<H: AutomationHost> Driver<H> {
     /// Like [`Self::resolve`], but a target's centre only once two frames in a row drew it in
     /// the same place (within [`STEADY_TIMEOUT`]): a press resolved while its target slides in
     /// (gpui-component's dialogs enter over a quarter second, moving their buttons tens of
-    /// pixels) would otherwise land where the target was, not where it is.
+    /// pixels) would otherwise land where the target was, not where it is. A target not drawn
+    /// yet is looked for again within the same time: an overlay the last input opened can
+    /// take a frame more to mount on a slow renderer.
     async fn resolve_steady(
         &mut self,
         position: Position,
@@ -650,11 +653,17 @@ impl<H: AutomationHost> Driver<H> {
         cx: &mut AsyncApp,
     ) -> Result<Point<Pixels>> {
         let targeted = matches!(position, Position::Target(_) | Position::TargetOffset(..));
-        let mut at = self.resolve(Some(position.clone()), window, cx).await?;
         if !targeted {
-            return Ok(at);
+            return self.resolve(Some(position), window, cx).await;
         }
         let started = Instant::now();
+        let mut at = loop {
+            match self.resolve(Some(position.clone()), window, cx).await {
+                Ok(at) => break at,
+                Err(err) if err.is::<MissingTarget>() && started.elapsed() < STEADY_TIMEOUT => {}
+                Err(err) => return Err(err),
+            }
+        };
         loop {
             let next = self.resolve(Some(position.clone()), window, cx).await?;
             if is_steady(at, next) || started.elapsed() >= STEADY_TIMEOUT {
@@ -1354,20 +1363,33 @@ fn can_fullscreen(_window: &Window) -> Value {
     Value::Null
 }
 
+/// A target the captured frame didn't draw, kept apart from other failures so a click can look
+/// for it again ([`Driver::resolve_steady`]).
+#[derive(Debug)]
+struct MissingTarget(String);
+
+impl std::fmt::Display for MissingTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for MissingTarget {}
+
 fn missing_target(name: &str, window: &Listed, set: &TargetSet) -> anyhow::Error {
     let suggestions = set.suggestions(name);
-    if suggestions.is_empty() {
-        anyhow!(
+    anyhow::Error::new(MissingTarget(if suggestions.is_empty() {
+        format!(
             "no target {name:?} is rendered in window {} (no targets are rendered there)",
             windows::label(window)
         )
     } else {
-        anyhow!(
+        format!(
             "no target {name:?} is rendered in window {}; rendered targets include {}",
             windows::label(window),
             suggestions.join(", ")
         )
-    }
+    }))
 }
 
 fn point_json(point: Point<Pixels>) -> Value {
