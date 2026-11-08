@@ -125,7 +125,7 @@
 // The second window has a custom title bar and a 320x200 minimum, like the apps' windows. Windows lets a window grow taller than the display; macOS clamps it, so it resizes within any display there.
 {"cmd": "resize", "window": "second", "w": 360, "h": 1700, "platforms": ["windows"], "expect_result": [{"pointer": "/w", "equals": 360}, {"pointer": "/h", "equals": 1700}], "expect": [{"pointer": "/window/w", "equals": 360}, {"pointer": "/window/h", "equals": 1700}, {"pointer": "/clicks", "equals": 2}]}
 {"cmd": "resize", "window": "second", "w": 360, "h": 640, "platforms": ["macos"], "expect_result": [{"pointer": "/w", "equals": 360}, {"pointer": "/h", "equals": 640}], "expect": [{"pointer": "/window/w", "equals": 360}, {"pointer": "/window/h", "equals": 640}, {"pointer": "/clicks", "equals": 2}]}
-// A size below the window's minimum is clamped to it, on both platforms.
+// A size below the window's minimum is clamped to it, on every platform.
 {"cmd": "resize", "window": "second", "w": 300, "h": 150, "expect_result": [{"pointer": "/w", "equals": 320}, {"pointer": "/h", "equals": 200}], "expect": [{"pointer": "/window/w", "equals": 320}, {"pointer": "/window/h", "equals": 200}]}
 {"cmd": "state", "window": "main", "expect_result": {"pointer": "/second/clicks", "equals": 2}}
 {"cmd": "state", "window": 0, "expect_result": {"pointer": "/view", "equals": "main"}}

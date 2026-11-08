@@ -1163,10 +1163,18 @@ impl<H: AutomationHost> Driver<H> {
         };
         #[cfg(not(windows))]
         let (target_w, target_h) = cx.update_window(window.handle, |_, window, _| {
-            /* gpui on macOS sets the content size as asked, below `contentMinSize` too. */
+            /* gpui sets the size as asked, below the window's minimum too. */
             #[cfg(target_os = "macos")]
             let (min_w, min_h) = crate::capture_macos::content_min_size(window)?;
-            #[cfg(not(target_os = "macos"))]
+            /* X11 leaves the minimum to a window manager, and none runs under Xvfb. */
+            #[cfg(target_os = "linux")]
+            let (min_w, min_h) = {
+                let target = crate::capture::capture_target(window)?;
+                let (w, h) = crate::capture_x11::min_size(target.x11_window())?;
+                let scale = window.scale_factor();
+                (w as f32 / scale, h as f32 / scale)
+            };
+            #[cfg(not(any(target_os = "macos", target_os = "linux")))]
             let (min_w, min_h) = (0.0, 0.0);
             let (w, h) = (args.w.max(min_w), args.h.max(min_h));
             window.resize(gpui::size(px(w), px(h)));

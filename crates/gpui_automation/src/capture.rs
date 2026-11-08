@@ -38,6 +38,14 @@ pub(crate) struct CaptureTarget {
     scale: f64,
 }
 
+#[cfg(target_os = "linux")]
+impl CaptureTarget {
+    /// The X11 window gpui draws into.
+    pub(crate) fn x11_window(&self) -> u32 {
+        self.x11_window
+    }
+}
+
 /// Physical pixel size of a written screenshot.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(

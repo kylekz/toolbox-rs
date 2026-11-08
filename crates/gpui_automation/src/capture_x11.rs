@@ -11,6 +11,7 @@
 
 use anyhow::{Context as _, Result, bail};
 use x11rb::connection::Connection as _;
+use x11rb::properties::WmSizeHints;
 use x11rb::protocol::xproto::{
     ConnectionExt as _, ImageFormat, ImageOrder, MapState, Setup, VisualClass, Visualid,
 };
@@ -48,6 +49,20 @@ pub(crate) fn capture_window(window: u32) -> Result<RgbaImage> {
         height: h.into(),
         rgba,
     })
+}
+
+/**
+ * The window's minimum client size in physical pixels, from the `WM_NORMAL_HINTS` gpui sets for
+ * `WindowOptions::window_min_size`; `(0, 0)` without one. A window manager enforces it, but none
+ * runs under the runner's Xvfb, so `resize` clamps to it itself, as it does on macOS.
+ */
+pub(crate) fn min_size(window: u32) -> Result<(u32, u32)> {
+    let (conn, _) = x11rb::connect(None).context("connecting to the X server on $DISPLAY")?;
+    let hints = WmSizeHints::get_normal_hints(&conn, window)?
+        .reply()
+        .context("reading the window's WM_NORMAL_HINTS")?;
+    let (w, h) = hints.and_then(|hints| hints.min_size).unwrap_or((0, 0));
+    Ok((w.max(0).unsigned_abs(), h.max(0).unsigned_abs()))
 }
 
 /// How a `ZPixmap` image of one depth and visual lays out its pixels.
