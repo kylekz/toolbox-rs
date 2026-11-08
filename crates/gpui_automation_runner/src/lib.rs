@@ -145,17 +145,17 @@ fn millis(flag: &str, value: &str) -> Result<Duration> {
     Ok(Duration::from_millis(ms))
 }
 
-/// The workspace the app's `e2e` bin was built in: the outermost folder above its manifest
+/// The workspace the app's `e2e` bin was built in: the nearest folder at or above its manifest
 /// whose `Cargo.toml` declares `[workspace]`, so default paths work whatever the current
-/// directory is.
+/// directory is. The nearest, never an outer one: a git worktree inside the app's own checkout
+/// (`.claude/worktrees/<name>`) has the checkout's workspace above it.
 fn workspace_root(manifest_dir: &Path) -> PathBuf {
     manifest_dir
         .ancestors()
-        .filter(|dir| {
+        .find(|dir| {
             std::fs::read_to_string(dir.join("Cargo.toml"))
                 .is_ok_and(|manifest| manifest.lines().any(|line| line.trim() == "[workspace]"))
         })
-        .last()
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from("."))
 }
@@ -490,7 +490,22 @@ mod tests {
     }
 
     #[test]
-    fn workspace_root_is_the_outermost_workspace() {
+    fn workspace_root_is_the_nearest_workspace_not_an_enclosing_checkout() {
+        let root = tempfile::tempdir().unwrap();
+        let checkout = root.path().join("app");
+        let worktree = checkout.join(".claude").join("worktrees").join("feature");
+        let member = worktree.join("crates").join("app_e2e");
+        std::fs::create_dir_all(&member).unwrap();
+        let workspace = "[workspace]\nmembers = [\"crates/*\"]\n";
+        std::fs::write(checkout.join("Cargo.toml"), workspace).unwrap();
+        std::fs::write(worktree.join("Cargo.toml"), workspace).unwrap();
+        std::fs::write(member.join("Cargo.toml"), "[package]\nname = \"app_e2e\"\n").unwrap();
+        assert_eq!(workspace_root(&member), worktree);
+        assert_eq!(workspace_root(&checkout.join("crates").join("x")), checkout);
+    }
+
+    #[test]
+    fn workspace_root_is_this_workspace() {
         let root = workspace_root(Path::new(env!("CARGO_MANIFEST_DIR")));
         assert!(
             root.join("crates").join("gpui_automation_runner").is_dir(),
