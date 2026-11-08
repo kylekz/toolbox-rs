@@ -11,9 +11,11 @@ holds the one copy they share.
 | [`gpui_automation_runner`](crates/gpui_automation_runner) | The end-to-end scenario runner as a library; each app wraps it in a small `e2e` bin with its own fixtures. | no |
 | [`automation_harness`](crates/automation_harness) | Dev-only: the app and runner that prove the three above end to end. | yes |
 | [`toolbox_process`](crates/toolbox_process) | Running other programs: a process tree of their own (a Unix group, a Windows job), timeouts, cancellation, graceful stops, streaming with stdin, and no console window on Windows. [docs/process.md](docs/process.md) | no |
+| [`toolbox_stills`](crates/toolbox_stills) | Still images through the OS decoders (ImageIO, WIC): sniffing, upright colour-managed decodes from files or bytes, HEIC and AVIF, a decode pool and a thumbnail cache. [docs/stills.md](docs/stills.md) | no |
 
 How automation works, the protocol and the scenario format: [docs/automation.md](docs/automation.md).
 Running other programs, and how each app adopts it: [docs/process.md](docs/process.md).
+Still images, and how slide and fc adopt them: [docs/stills.md](docs/stills.md).
 What comes next and why: [docs/PLAN.md](docs/PLAN.md).
 
 ## Using it
@@ -22,9 +24,10 @@ Apps depend on a tag, never on a branch:
 
 ```toml
 [workspace.dependencies]
-gpui_automation = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.2.0" }
-gpui_automation_runner = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.2.0" }
-toolbox_process = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.2.0" }
+gpui_automation = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.3.0" }
+gpui_automation_runner = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.3.0" }
+toolbox_process = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.3.0" }
+toolbox_stills = { git = "https://github.com/kylekz/toolbox-rs", tag = "v0.3.0" }
 ```
 
 toolbox-rs pins the gpui stack exactly (`gpui-pre =0.3.11`, `gpui-component =0.9.0`). An app on a
@@ -40,6 +43,7 @@ gpui_automation = { path = "../toolbox-rs/crates/gpui_automation" }
 gpui_automation_protocol = { path = "../toolbox-rs/crates/gpui_automation_protocol" }
 gpui_automation_runner = { path = "../toolbox-rs/crates/gpui_automation_runner" }
 toolbox_process = { path = "../toolbox-rs/crates/toolbox_process" }
+toolbox_stills = { path = "../toolbox-rs/crates/toolbox_stills" }
 ```
 
 ## Checking

@@ -10,8 +10,9 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
   `gpui_automation_runner` and the dev-only `automation_harness` (§2). Every gate passes on
   macOS, including the harness scenarios (126 steps) through the new runner. Windows and Linux
   are checked by CI and the owner's PC.
-- **Phase 2:** `toolbox_process` is built and tagged `v0.2.0` (§5a,
-  [docs/process.md](process.md)); the apps adopt it from that document, each in its own change.
+- **Phase 2:** `toolbox_process` is built at `0.2.0` (§5a, [docs/process.md](process.md)) and
+  `toolbox_stills` at `0.3.0` (§5a, [docs/stills.md](stills.md)); the apps adopt each from its
+  document, each in its own change.
 - **The apps:** slide and dv are on `v0.1.2`; fc moves onto `v0.1.3`, which adds what its
   runner extensions need (§2.3).
 - **The stack:** `gpui-pre =0.3.11`, `gpui-pre-platform =0.3.11`, `gpui-component =0.9.0`
@@ -223,7 +224,7 @@ Each app's CLAUDE.md and PLAN §14 then point at the shared crate's docs, not th
   - about 450 from fc;
   - nothing from slide, which only runs `chflags`.
 
-### `toolbox_stills`: still images
+### `toolbox_stills`: still images (built; docs/stills.md)
 - **Seed:** slide's `slide_media` (about 3k lines):
   - OS decoding (ImageIO on macOS, WIC on Windows, HEIF): colour-managed to sRGB, EXIF
     orientation applied, HEIC and AVIF, and 1.5–6× faster than the `image` crate for JPEG;
@@ -231,7 +232,16 @@ Each app's CLAUDE.md and PLAN §14 then point at the shared crate's docs, not th
   - `ThumbCache` (a key over path, size and mtime; atomic writes; pruned to a byte budget).
 - **What fc gains:** HEIC, colour management and orientation. fc keeps its YouTube thumbnail and
   cover code.
-- **Stays in slide:** `scan.rs`, which scans dropped files.
+- **Stays in slide:** `scan.rs`, which scans dropped files, and slide's own values (the grid's
+  320 px, the 2 GiB cache budget).
+- **Added for fc:** decoding bytes in memory (`Source::Bytes`, `SourceBuf`), `sniff_bytes`,
+  `Bgra::into_rgba_image` and `resize_to_fit`. Linux builds with the `image` crate as its only
+  decoder, so the workspace and CI build there.
+- **Windows rule:** WIC joins a thread to COM's multithreaded apartment, and gpui's Windows
+  executor runs on the system thread pool, so an app decodes through the crate's `Decoder`,
+  whose threads are its own.
+- **Licences:** one package new to the tree, `objc2-image-io` (Zlib OR Apache-2.0 OR MIT, as
+  the other objc2 crates); no new licence.
 
 ### `gpui_appearance`: light/dark and window materials (gpui)
 The owner raised this from phase 3 because it shapes how every app looks.

@@ -498,7 +498,7 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "automation_harness"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "gpui-component",
@@ -2834,7 +2834,7 @@ checksum = "99b18b06f5026b3d312488eacfdddbe78f82b4bf32bb2d2bc3186e31e552b797"
 
 [[package]]
 name = "gpui_automation"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "core-graphics 0.24.0",
@@ -2855,7 +2855,7 @@ dependencies = [
 
 [[package]]
 name = "gpui_automation_protocol"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "pretty_assertions",
@@ -2865,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "gpui_automation_runner"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "gpui_automation_protocol",
@@ -4478,6 +4478,16 @@ dependencies = [
  "libc",
  "objc2 0.6.5",
  "objc2-core-foundation",
+]
+
+[[package]]
+name = "objc2-image-io"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32b0446e98cf4a784cc7a0177715ff317eeaa8463841c616cfc78aa4f953c4ea"
+dependencies = [
+ "objc2-core-foundation",
+ "objc2-core-graphics",
 ]
 
 [[package]]
@@ -6946,7 +6956,7 @@ checksum = "009dbb7700f11c55ef83aebbe4c0e9cf1f1ac0844bd8d6f00dc38f302026e13a"
 
 [[package]]
 name = "toolbox_process"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "libc",
  "pretty_assertions",
@@ -6954,6 +6964,24 @@ dependencies = [
  "thiserror 2.0.21",
  "which",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "toolbox_stills"
+version = "0.3.0"
+dependencies = [
+ "async-channel",
+ "image",
+ "log",
+ "objc2-core-foundation",
+ "objc2-core-graphics",
+ "objc2-image-io",
+ "pollster 0.4.0",
+ "pretty_assertions",
+ "sha2 0.11.1",
+ "tempfile",
+ "thiserror 2.0.21",
+ "windows 0.62.2",
 ]
 
 [[package]]

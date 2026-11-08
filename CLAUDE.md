@@ -5,8 +5,9 @@ that used to live in each app, so a change here reaches all of them: keep the su
 keep what is one app's business in that app (its fixtures, its commands, its values).
 
 - Spec: `docs/PLAN.md` (decisions O1–O6, the crates, the phases; cited as `PLAN §N` / `O<n>`),
-  `docs/automation.md` (the automation protocol, the scenario format, the runner) and
-  `docs/process.md` (`toolbox_process` and how each app adopts it). Read the
+  `docs/automation.md` (the automation protocol, the scenario format, the runner),
+  `docs/process.md` (`toolbox_process` and how each app adopts it) and `docs/stills.md`
+  (`toolbox_stills` and how the apps adopt it). Read the
   relevant sections before changing anything; when code and spec disagree, fix one of them in the
   same change.
 - The apps consume tags (`tag = "v0.1.0"`), never branches. Tags are the owner's: no agent pushes
@@ -29,6 +30,7 @@ keep what is one app's business in that app (its fixtures, its commands, its val
 | `gpui_automation_protocol` | wire format, matcher, builtin commands' arguments, selectors | **never** |
 | `gpui_automation_runner` | the scenario runner as a library: `RunnerApp`, `Fixture`, `main` | **never** |
 | `toolbox_process` | running other programs: own process tree, timeouts, cancel, streaming (docs/process.md) | **never** |
+| `toolbox_stills` | still images: sniffing, OS decoding (ImageIO, WIC) to upright sRGB, the decode pool, the thumbnail cache | **never** |
 | `automation_harness` | dev-only: the harness app and its runner, the crates' end-to-end proof | yes |
 
 A gpui dependency in a "never" crate fails `script/check` (`cargo tree`): the runner and the
@@ -51,9 +53,9 @@ A gpui dependency in a "never" crate fails `script/check` (`cargo tree`): the ru
   `tools`, `tool_log`, `tool_release`) before adding one.
 - **Style.** rustfmt defaults; clippy clean with `-D warnings` in both `gpui_automation` shapes
   (with and without `enabled`). Files stay under ~1,500 lines, split by responsibility.
-- **Comments** say what something is and why, in the present tense, citing `PLAN §N` or
-  `docs/automation.md` sections. History belongs in commit messages, never in comments. Use
-  `/** */` for multi-line comments outside doc comments.
+- **Comments** say what something is and why, in the present tense, citing `PLAN §N`,
+  `docs/automation.md`, `docs/process.md` or `docs/stills.md` sections. History belongs in commit
+  messages, never in comments. Use `/** */` for multi-line comments outside doc comments.
 - **`script/check` before every commit.**
 
 ## GUI runs

@@ -40,8 +40,9 @@ cargo clippy --workspace --all-targets -- -D warnings
 step 2 "cargo clippy -p gpui_automation --all-targets -- -D warnings  (the stand-ins)"
 cargo clippy -p gpui_automation --all-targets -- -D warnings
 
-step 3 "gpui boundary: gpui_automation_protocol, gpui_automation_runner, toolbox_process"
-for crate in gpui_automation_protocol gpui_automation_runner toolbox_process; do
+gpui_free_crates=(gpui_automation_protocol gpui_automation_runner toolbox_process toolbox_stills)
+step 3 "gpui boundary: ${gpui_free_crates[*]}"
+for crate in "${gpui_free_crates[@]}"; do
     if cargo tree -p "$crate" -e normal --prefix none | grep -q '^gpui-pre '; then
         echo "script/check: $crate depends on gpui:" >&2
         cargo tree -p "$crate" -e normal -i gpui-pre >&2

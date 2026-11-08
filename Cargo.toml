@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.98"
 publish = false
@@ -26,20 +26,34 @@ toolbox_process = { path = "crates/toolbox_process" }
 
 # ---- everything else, alphabetical
 anyhow = "1.0"
+# `toolbox_stills`' decode pool: its queues and its replies.
+async-channel = "2.5"
 clap = { version = "4.6", features = ["derive", "env"] }
 core-graphics = "0.24"
 futures = "0.3"
+# `toolbox_stills`: the animation decoder and the still fallback (docs/stills.md).
+image = { version = "0.25.10", default-features = false, features = ["bmp", "gif", "jpeg", "png", "webp"] }
 libc = "0.2"
 log = "0.4"
 objc2 = "0.6"
+# ImageIO and CoreGraphics: `toolbox_stills`' still decoder on macOS.
+objc2-core-foundation = { version = "0.3.2", default-features = false }
+objc2-core-graphics = { version = "0.3.2", default-features = false }
+objc2-image-io = { version = "0.3.2", default-features = false }
 png = "0.18"
+# Blocks on a future outside an executor (`toolbox_stills`' tests).
+pollster = "0.4"
 pretty_assertions = "1.4"
 raw-window-handle = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+# The thumbnail cache's keys (`toolbox_stills::ThumbKey`).
+sha2 = "0.11"
 tempfile = "3"
 thiserror = "2.0"
 which = "8.0"
+# WIC: `toolbox_stills`' still decoder on Windows.
+windows = "0.62"
 windows-sys = "0.61"
 x11rb = "0.13"
 

@@ -1,0 +1,60 @@
+[package]
+name = "toolbox_stills"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Still images through the OS decoders: sniffing, colour-managed upright decodes, a decode pool and a thumbnail cache, without gpui"
+
+[lib]
+doctest = false
+
+# gpui: never, not even transitively (`script/check`).
+[dependencies]
+async-channel.workspace = true
+image.workspace = true
+log.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-core-foundation = { workspace = true, features = [
+    "std",
+    "CFBase",
+    "CFCGTypes",
+    "CFData",
+    "CFDictionary",
+    "CFNumber",
+    "CFString",
+    "CFURL",
+] }
+objc2-core-graphics = { workspace = true, features = [
+    "std",
+    "CGBitmapContext",
+    "CGColorSpace",
+    "CGContext",
+    "CGImage",
+] }
+objc2-image-io = { workspace = true, features = [
+    "std",
+    "CGImageProperties",
+    "CGImageSource",
+    "objc2-core-graphics",
+] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Imaging",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Variant",
+] }
+
+[dev-dependencies]
+pollster.workspace = true
+pretty_assertions.workspace = true
+tempfile.workspace = true
