@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
+authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Dev-only: a small gpui-component app and its e2e runner that prove gpui_automation end to end"

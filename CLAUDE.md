@@ -37,7 +37,8 @@ without gpui. Crates that need gpui are named `gpui_*`; crates that don't are `t
 
 - **Dependencies.** Declare every dependency once in the root `[workspace.dependencies]` (keep it
   alphabetical) and use `foo.workspace = true` in crates.
-- **Licence.** Every crate is MIT. Nothing derived from GPL code (Zed's `sqlez`, `open_router`,
+- **Licence.** Every crate is MIT and carries its own copy of the root `LICENSE` (an app's
+  third-party notices read it from the crate folder); a new crate copies it too. Nothing derived from GPL code (Zed's `sqlez`, `open_router`,
   editor, project, …) comes here; gpui and gpui-component are Apache-2.0 and fine to build on.
 - **Errors.** `anyhow` in the runner and the driver's command handling, `thiserror` enums in
   libraries with typed errors. No `unwrap()`/`expect()` outside tests unless the message states

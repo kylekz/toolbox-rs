@@ -498,7 +498,7 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "automation_harness"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "gpui-component",
@@ -2834,7 +2834,7 @@ checksum = "99b18b06f5026b3d312488eacfdddbe78f82b4bf32bb2d2bc3186e31e552b797"
 
 [[package]]
 name = "gpui_automation"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "core-graphics 0.24.0",
@@ -2855,7 +2855,7 @@ dependencies = [
 
 [[package]]
 name = "gpui_automation_protocol"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "pretty_assertions",
@@ -2865,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "gpui_automation_runner"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "gpui_automation_protocol",
