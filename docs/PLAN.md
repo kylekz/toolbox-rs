@@ -10,6 +10,8 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
   `gpui_automation_runner` and the dev-only `automation_harness` (§2). Every gate passes on
   macOS, including the harness scenarios (126 steps) through the new runner. Windows and Linux
   are checked by CI and the owner's PC.
+- **Phase 2:** `toolbox_process` is built and tagged `v0.2.0` (§5a,
+  [docs/process.md](process.md)); the apps adopt it from that document, each in its own change.
 - **The apps:** slide and dv are on `v0.1.2`; fc moves onto `v0.1.3`, which adds what its
   runner extensions need (§2.3).
 - **The stack:** `gpui-pre =0.3.11`, `gpui-pre-platform =0.3.11`, `gpui-component =0.9.0`
@@ -167,6 +169,8 @@ Each app's CLAUDE.md and PLAN §14 then point at the shared crate's docs, not th
 ## 5a. Phase 2 crates (no gpui)
 
 ### `toolbox_process`: running other programs
+**Built.** The API, each app's adoption (file by file) and what the crate leaves out are in
+[docs/process.md](process.md).
 - **Why:** fc's runner (`fc_tools/src/process.rs`) was written after dv's
   (`dv_core/src/backend/process/local.rs`), and the two have since drifted. dv also has two
   more "run to the end with a timeout" loops (`git/command.rs`, `dv_cli/src/checks/process.rs`)
@@ -199,6 +203,15 @@ Each app's CLAUDE.md and PLAN §14 then point at the shared crate's docs, not th
   - `Stop::Graceful(grace)` or `Stop::Kill`;
   - a typed `ProcessError`;
   - a small `Override` helper: an env var names the executable, otherwise PATH.
+- **Settled while building it:**
+  - On Windows a graceful stop is a kill: a windowless process has no console for Ctrl-C.
+  - A line longer than 1 MiB (`LINE_MAX`) arrives in pieces, rather than growing without
+    bound or being cut.
+  - A process that escaped its tree and holds a pipe delays a run by one second after the exit
+    at most; the run then returns what it read (dv's git used to fail with a timeout).
+  - Unix children don't die with a crashed app: `PR_SET_PDEATHSIG` follows the spawning thread,
+    not the process.
+  - `run` kills the tree whenever it returns, a panicking line handler included.
 - **Stays in the apps:**
   - git policy, `GH_PROMPT_DISABLED`/`DV_GH`, `DV_LSP_<ID>`;
   - dv's backend process trait, which is needed for processes inside WSL;

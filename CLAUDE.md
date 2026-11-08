@@ -4,8 +4,9 @@ Shared crates for the owner's gpui desktop apps (dv, slide, fc). Every crate her
 that used to live in each app, so a change here reaches all of them: keep the surface small, and
 keep what is one app's business in that app (its fixtures, its commands, its values).
 
-- Spec: `docs/PLAN.md` (decisions O1–O6, the crates, the phases; cited as `PLAN §N` / `O<n>`) and
-  `docs/automation.md` (the automation protocol, the scenario format, the runner). Read the
+- Spec: `docs/PLAN.md` (decisions O1–O6, the crates, the phases; cited as `PLAN §N` / `O<n>`),
+  `docs/automation.md` (the automation protocol, the scenario format, the runner) and
+  `docs/process.md` (`toolbox_process` and how each app adopts it). Read the
   relevant sections before changing anything; when code and spec disagree, fix one of them in the
   same change.
 - The apps consume tags (`tag = "v0.1.0"`), never branches. Tags are the owner's: no agent pushes
@@ -27,10 +28,11 @@ keep what is one app's business in that app (its fixtures, its commands, its val
 | `gpui_automation` | the in-app driver (`enabled` feature) or its no-op stand-ins (without) | yes |
 | `gpui_automation_protocol` | wire format, matcher, builtin commands' arguments, selectors | **never** |
 | `gpui_automation_runner` | the scenario runner as a library: `RunnerApp`, `Fixture`, `main` | **never** |
+| `toolbox_process` | running other programs: own process tree, timeouts, cancel, streaming (docs/process.md) | **never** |
 | `automation_harness` | dev-only: the harness app and its runner, the crates' end-to-end proof | yes |
 
-A gpui dependency in a "never" crate fails `script/check` (`cargo tree`): the runner must build
-without gpui. Crates that need gpui are named `gpui_*`; crates that don't are `toolbox_*` or
+A gpui dependency in a "never" crate fails `script/check` (`cargo tree`): the runner and the
+`toolbox_*` crates must build without gpui; a new "never" crate joins `script/check`'s step 3 list. Crates that need gpui are named `gpui_*`; crates that don't are `toolbox_*` or
 `gpui_automation_*` for the automation family.
 
 ## Rules

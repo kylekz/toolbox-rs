@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.98"
 publish = false
@@ -22,6 +22,7 @@ gpui-component = "=0.9.0"
 gpui_automation = { path = "crates/gpui_automation" }
 gpui_automation_protocol = { path = "crates/gpui_automation_protocol" }
 gpui_automation_runner = { path = "crates/gpui_automation_runner" }
+toolbox_process = { path = "crates/toolbox_process" }
 
 # ---- everything else, alphabetical
 anyhow = "1.0"
@@ -37,6 +38,8 @@ raw-window-handle = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tempfile = "3"
+thiserror = "2.0"
+which = "8.0"
 windows-sys = "0.61"
 x11rb = "0.13"
 

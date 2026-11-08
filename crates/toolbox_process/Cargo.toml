@@ -1,0 +1,40 @@
+[package]
+name = "toolbox_process"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Running other programs: a process tree of their own, timeouts, cancellation, graceful stops, streaming and no console window on Windows"
+
+[lib]
+doctest = false
+
+# The program the tests run (tests/support/child.rs): never built for an app, which only builds the lib.
+[[bin]]
+name = "toolbox_process_child"
+path = "tests/support/child.rs"
+test = false
+doc = false
+
+# gpui: never, not even transitively (`script/check`).
+[dependencies]
+thiserror.workspace = true
+which.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+tempfile.workspace = true

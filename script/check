@@ -7,7 +7,7 @@
 #   1. cargo fmt --check
 #   2. clippy -D warnings: the workspace (gpui_automation with `enabled`, through the harness) and
 #      gpui_automation alone (its no-op stand-ins)
-#   3. the gpui boundary: the protocol and runner crates never depend on gpui (CLAUDE.md)
+#   3. the gpui boundary: the gpui-free crates never depend on gpui (CLAUDE.md)
 #   4. cargo test --workspace
 #   5. the harness scenarios through its runner, in the background (on Linux, the runner's own
 #      Xvfb display), into target/e2e-harness
@@ -40,15 +40,15 @@ cargo clippy --workspace --all-targets -- -D warnings
 step 2 "cargo clippy -p gpui_automation --all-targets -- -D warnings  (the stand-ins)"
 cargo clippy -p gpui_automation --all-targets -- -D warnings
 
-step 3 "gpui boundary: gpui_automation_protocol and gpui_automation_runner"
-for crate in gpui_automation_protocol gpui_automation_runner; do
+step 3 "gpui boundary: gpui_automation_protocol, gpui_automation_runner, toolbox_process"
+for crate in gpui_automation_protocol gpui_automation_runner toolbox_process; do
     if cargo tree -p "$crate" -e normal --prefix none | grep -q '^gpui-pre '; then
         echo "script/check: $crate depends on gpui:" >&2
         cargo tree -p "$crate" -e normal -i gpui-pre >&2
         exit 1
     fi
 done
-echo "ok: neither depends on gpui"
+echo "ok: none depends on gpui"
 
 step 4 "cargo test --workspace"
 cargo test --workspace
