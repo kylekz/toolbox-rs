@@ -10,30 +10,39 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
   `gpui_automation_runner` and the dev-only `automation_harness` (§2). Every gate passes on
   macOS, including the harness scenarios (126 steps) through the new runner. Windows and Linux
   are checked by CI and the owner's PC.
-- **Phase 2:** `toolbox_process` is built at `0.2.0` (§5a, [docs/process.md](process.md)),
-  `toolbox_stills` at `0.3.0` (§5a, [docs/stills.md](stills.md)) and `gpui_appearance` at `0.4.0`
-  (§5a, [docs/appearance.md](appearance.md)); the apps adopt each from its document, each in its
-  own change. `gpui_appearance` (light/dark followed live with app and automation overrides,
-  Mica/Acrylic on Windows 11, the crate's own vibrancy on macOS) is proved by
-  `harness_appearance.jsonl` and foreground captures on the owner's Mac and on the owner's
-  Windows 11 PC (Mica, Acrylic, the transparency switch on and off).
-  `toolbox_store` is built at `0.5.0` (§5a, [docs/store.md](store.md)): the apps' SQLite layer on
-  rusqlite in place of their GPL sqlez copies, carrying on from sqlez's `migrations` table, proved
-  on databases built as sqlez leaves them and on a copy of fc's shipped `v2.db`.
-- **The apps:** slide and dv are on `v0.1.2`; fc moves onto `v0.1.3`, which adds what its
-  runner extensions need (§2.3).
+- **Phase 2 is built and adopted** (§5a). Each crate has its own tag and document:
+  - `toolbox_process`, `v0.2.0` ([docs/process.md](process.md));
+  - `toolbox_stills`, `v0.3.0` ([docs/stills.md](stills.md));
+  - `gpui_appearance`, `v0.4.0` ([docs/appearance.md](appearance.md)): light/dark followed live
+    with app and automation overrides, Mica/Acrylic on Windows 11, the crate's own vibrancy on
+    macOS. It is proved by `harness_appearance.jsonl` and by foreground captures on the owner's
+    Mac and Windows 11 PC (Mica, Acrylic, the transparency switch on and off);
+  - `toolbox_store`, `v0.5.0` ([docs/store.md](store.md)): the apps' SQLite layer on rusqlite in
+    place of their GPL sqlez copies, carrying on from sqlez's `migrations` table. It is proved on
+    databases built as sqlez leaves them, and on copies of the owner's real fc library.
+- **The apps** are all on `v0.5.0`, verified on macOS and on the owner's Windows 11 PC (dv also
+  in WSL):
+
+  | App | Crates it uses |
+  |---|---|
+  | dv | automation, `toolbox_process`, `gpui_appearance` |
+  | fc | automation and all four phase 2 crates |
+  | slide | automation, `toolbox_stills`, `gpui_appearance`, `toolbox_store` |
+
+  Neither fc nor slide carries sqlez any more.
 - **The stack:** `gpui-pre =0.3.11`, `gpui-pre-platform =0.3.11`, `gpui-component =0.9.0`
   (gpui-kit 0.9). Each is pinned on its own, as the apps do, not through the `gpui-kit` umbrella.
   Rust 1.98.1, edition 2024, resolver 3, as in all three apps.
-- **The 0.9 bump in the apps:** slide's is on its main (`e01f38c`), and diff's (`38c89d2`)
-  passes every gate on macOS, Windows and WSL. In both, almost every compile break was inside
+- **gpui bumps:** almost every compile break in the apps' 0.9 bumps was inside
   `gpui_automation`:
   - `ScrollEvent`;
   - `Keystroke::parse_with_os`;
   - the removed dialog layer;
   - Windows keystrokes typed through the keyboard mapper.
 
-  Once that crate is shared, the next gpui bump costs each app much less.
+  That crate is now shared, so the next bump is fixed once here rather than in each app.
+- **Next:** phase 3, `gpui_theme_kit` (§5b), with `gpui_system` and `toolbox_app_shell` (§6,
+  item 4).
 
 ## 1. Decisions (settled 2026-11-09)
 
