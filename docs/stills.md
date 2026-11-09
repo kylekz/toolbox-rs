@@ -149,7 +149,9 @@ pub type Priority = u64;
   requests resolve to `Closed`, running decodes finish on their threads. A decoder that panics
   on an untrusted file is a `Decode` error; the thread survives.
 - The futures need no particular executor. A thread an app owns can wait on one with
-  `futures::executor::block_on`.
+  `pollster::block_on`, as the crate's own tests do. Prefer it to `futures::executor::block_on`,
+  which panics when the caller is already inside one of futures' own `block_on`s (fc's
+  thumbnail tests are).
 - `WORKERS = 4`: slide's size, with which a still decodes well within a 0.1 s hold.
 
 ### The thumbnail cache
@@ -314,7 +316,7 @@ sniffing and decoding move to toolbox_stills.
       let picture = toolbox_stills::sniff_bytes(bytes, None)
           .and_then(Media::picture)
           .ok_or(MediaError::UnknownFormat)?;
-      let thumbnail = futures::executor::block_on(decoder().thumbnail(
+      let thumbnail = pollster::block_on(decoder().thumbnail(
           bytes.to_vec(),
           picture,
           u32::MAX,
