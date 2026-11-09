@@ -114,7 +114,9 @@ Faking the activation isn't possible: a posted `WM_ACTIVATE` reaches
 process the runner started may take the foreground (the watch below caught
 exactly that). A scenario that needs an active window sets
 `"foreground": true` in its header; the runner then starts that one app
-normally.
+normally. The run's first line counts such scenarios (`in the background, 1 of
+them in the foreground`), and each prints `, in the foreground` after its
+`----` line's path.
 
 On macOS only the unfocused, unthrottled part applies, and the window does
 the opposite of Windows': macOS stops drawing a window that is fully covered
@@ -153,6 +155,16 @@ A `screenshot` takes its pixels from one of two sources (`"source"`):
   mode, and fails rather than copying another window's pixels when the window
   isn't the foreground window, is covered at any of 9 sample points, or runs
   off the screen.
+
+On **Windows** both sources leave out the top rows DWM covers with the
+window's border. gpui draws its own title bar by stretching the client area up
+to the window's top edge, and Windows 11 keeps its visible frame border (2 px
+at 150 %) inside the window there: the screen shows what is behind the window
+in those rows, and the window's own frame has gpui's pixels the person never
+sees. A window with gpui's title bar therefore captures 1–2 rows shorter than
+its size times its scale; a window with the OS title bar, a maximised or a
+fullscreen one captures whole. Windows 11's rounded corners show what is
+behind the window in a `screen` capture, as on screen.
 
 What a background run shows is the window **inactive**. Judge layout, type
 and colour from background screenshots; what only an active window shows (a

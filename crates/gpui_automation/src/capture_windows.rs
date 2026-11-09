@@ -18,6 +18,11 @@
 //! "the first visible window of this process", so multi-window apps capture
 //! the window that was asked for.
 //!
+//! The capture leaves out the rows of the client area DWM covers with the
+//! window's top border ([`hidden_top_rows`]), so both sources show what the
+//! screen shows. Windows 11's rounded corners still show what is behind the
+//! window in a `Screen` capture, as the screen does.
+//!
 //! Sizes are physical pixels. The capture thread switches itself to
 //! per-monitor-v2 DPI awareness for the duration so client rects are never
 //! DPI-virtualised, whatever the process manifest says; on the 150% dev
@@ -27,6 +32,10 @@ use std::ffi::c_void;
 
 use anyhow::{Result, bail};
 use windows_sys::Win32::Foundation::{HWND, POINT, RECT};
+use windows_sys::Win32::Graphics::Dwm::{
+    DWMWA_EXTENDED_FRAME_BOUNDS, DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, DWMWINDOWATTRIBUTE,
+    DwmGetWindowAttribute,
+};
 use windows_sys::Win32::Graphics::Gdi::{
     BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BLACKNESS, BitBlt, ClientToScreen,
     CreateCompatibleBitmap, CreateCompatibleDC, DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC,
@@ -37,8 +46,8 @@ use windows_sys::Win32::UI::HiDpi::{
     DPI_AWARENESS_CONTEXT, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, SetThreadDpiAwarenessContext,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GA_ROOT, GetAncestor, GetClientRect, GetForegroundWindow, IsIconic, IsWindow,
-    PW_RENDERFULLCONTENT, WindowFromPoint,
+    GA_ROOT, GWL_STYLE, GetAncestor, GetClientRect, GetForegroundWindow, GetWindowLongW, IsIconic,
+    IsWindow, IsZoomed, PW_RENDERFULLCONTENT, WS_CAPTION, WS_THICKFRAME, WindowFromPoint,
 };
 
 use crate::capture::CaptureSource;
@@ -113,6 +122,9 @@ pub(crate) fn capture_client_area(hwnd: isize, source: CaptureSource) -> Result<
         }
     };
 
+    let hidden = hidden_top_rows(hwnd, client_to_screen(hwnd, 0, 0)?.y).min(h - 1);
+    pixels.drain(..hidden as usize * w as usize * 4);
+
     // BGRA -> RGBA. Alpha from a composed frame means nothing once it is
     // flattened into a screenshot, so force it opaque.
     for px in pixels.as_chunks_mut::<4>().0 {
@@ -121,9 +133,48 @@ pub(crate) fn capture_client_area(hwnd: isize, source: CaptureSource) -> Result<
     }
     Ok(RgbaImage {
         width: w as u32,
-        height: h as u32,
+        height: (h - hidden) as u32,
         rgba: pixels,
     })
+}
+
+/**
+ * How many of the client area's top rows DWM covers with the window's top border. gpui draws its
+ * own title bar by stretching the client area up to the window's top edge (its `WM_NCCALCSIZE`),
+ * and Windows 11 keeps the frame's visible border inside the frame bounds there: 2 px at 150 %,
+ * where the screen shows what is behind the window and `PrintWindow` shows gpui's pixels the
+ * person never sees. Zero for a window with an OS title bar (its client area starts below the
+ * border), for a maximised or fullscreen window (DWM draws no border), and when DWM can't report
+ * the border (Windows 10).
+ */
+fn hidden_top_rows(hwnd: HWND, client_top: i32) -> i32 {
+    // SAFETY: `hwnd` is live; the calls only query window state.
+    let (style, zoomed) = unsafe { (GetWindowLongW(hwnd, GWL_STYLE) as u32, IsZoomed(hwnd) != 0) };
+    if style & (WS_CAPTION | WS_THICKFRAME) == 0 || zoomed {
+        return 0;
+    }
+    let mut frame = RECT::default();
+    let mut border = 0u32;
+    if !dwm_attribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &mut frame)
+        || !dwm_attribute(hwnd, DWMWA_VISIBLE_FRAME_BORDER_THICKNESS, &mut border)
+    {
+        return 0;
+    }
+    (frame.top + border as i32 - client_top).max(0)
+}
+
+/// Reads a DWM window attribute into `value`; `false` when DWM can't report it.
+fn dwm_attribute<T>(hwnd: HWND, attribute: DWMWINDOWATTRIBUTE, value: &mut T) -> bool {
+    // SAFETY: `hwnd` is live and `value` is a valid out-pointer of the size passed.
+    let result = unsafe {
+        DwmGetWindowAttribute(
+            hwnd,
+            attribute as u32,
+            (value as *mut T).cast(),
+            std::mem::size_of::<T>() as u32,
+        )
+    };
+    result >= 0
 }
 
 /// The window's composed frame through `PrintWindow`, or `None` when it

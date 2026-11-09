@@ -42,6 +42,14 @@ pub struct Config {
     pub verbose: bool,
 }
 
+impl Config {
+    /// Whether `scenario` runs in the background: the run's mode, unless the scenario's header
+    /// asks for the foreground (docs/automation.md "Background runs").
+    pub fn runs_in_background(&self, scenario: &Scenario) -> bool {
+        self.background && !scenario.header.foreground
+    }
+}
+
 pub enum Outcome {
     Passed {
         steps: usize,
@@ -296,7 +304,7 @@ fn run_in(
         line: None,
         message: format!("{err:#}"),
     };
-    let background = config.background && !scenario.header.foreground;
+    let background = config.runs_in_background(scenario);
     // Recorded before anything starts, so a failure can say what the app took the foreground
     // from.
     let foreground = ForegroundCheck {
@@ -980,7 +988,7 @@ mod tests {
             data_dir_arg: true,
             launches: 0,
             pids: Vec::new(),
-            background: config.background && !scenario.header.foreground,
+            background: config.runs_in_background(scenario),
         }
     }
 
