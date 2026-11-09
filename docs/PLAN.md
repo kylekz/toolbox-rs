@@ -30,6 +30,12 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
   | slide | automation, `toolbox_stills`, `gpui_appearance`, `toolbox_store` |
 
   Neither fc nor slide carries sqlez any more.
+- **`v0.5.1`** fixes two automation quirks, verified on the owner's Windows PC:
+  - On Windows, captures of windows with a gpui-drawn title bar leave out the top rows that
+    DWM's border covers (2 px at 150%).
+  - The runner's mode line reports foreground scenarios as running in the foreground.
+
+  No app depends on a capture's pixel size, so the apps can take it at their next change.
 - **The stack:** `gpui-pre =0.3.11`, `gpui-pre-platform =0.3.11`, `gpui-component =0.9.0`
   (gpui-kit 0.9). Each is pinned on its own, as the apps do, not through the `gpui-kit` umbrella.
   Rust 1.98.1, edition 2024, resolver 3, as in all three apps.
