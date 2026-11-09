@@ -120,10 +120,15 @@ Add `toolbox_process` to the root `[workspace.dependencies]` beside `gpui_automa
 - Goes: `Msg`, `QUEUE`, `DRAIN`, `CHUNK`, `start_thread`, `lock`, `Running`, `State`, `Tree`,
   `own_tree`, `read_stdout`, `read_stderr`, `read_line`, `deliver`, and the `read_line` half of
   `stderr_reads_as_bounded_lines` (keep a `bounded_line` test where `bounded_line` lives).
-- **Differs:** a stderr line over 1 MiB now arrives as several lines (each cut at 8 KiB by
-  `bounded_line`) where dv read and dropped the rest. `Backend::spawn_stdio`'s contract is
-  otherwise unchanged: the conformance tests (`dv_backend/tests/conformance/process.rs`) should
-  pass as they are.
+- **Differs:**
+  - A stderr line over 1 MiB now arrives as several lines (each cut at 8 KiB by
+    `bounded_line`) where dv read and dropped the rest.
+  - The queue holds 256 chunks of 64 KiB (16 MiB) where dv's held 64 (4 MiB), so more of an
+    unread program's output waits before it blocks. The conformance flood test
+    (`dv_backend/tests/conformance/process.rs`) bounds what may wait unread: raise its bound
+    to 24 MiB, and change PLAN §18.3's queue size to match.
+  - `Backend::spawn_stdio`'s contract is otherwise unchanged, and the other conformance tests
+    pass as they are.
 
 ### `crates/dv_core/src/job.rs` (226 lines → about 15)
 - `tie_to_this_process(child)` becomes a wrapper that logs, keeping its four callers
