@@ -1,18 +1,25 @@
 # script/check on GitHub's runners for every push to main and every pull request: the full check
 # on Linux (the harness scenarios on the runner's own Xvfb display, drawn by a software Vulkan
 # driver), --fast on Windows and macOS, whose hosted runners have no GPU to draw the harness
-# with. The harness scenarios run on the owner's Mac and PC before every commit.
+# with. The harness scenarios run on the owner's Mac and PC before every commit. A change to docs
+# and Markdown alone builds nothing; workflows.yml checks the workflows on every change.
 #
 # Security: the token is read-only in every job, no job has a secret, checkouts keep no
 # credentials, every action is pinned to a commit, and nothing runs on pull_request_target.
 # Caches are saved from main alone.
+#
+# The cache holds the dependencies' build outputs, keyed by `script/ci-cache key` (the
+# dependencies, the manifests without the workspace's version, the toolchain) and trimmed by
+# `script/ci-cache trim` before it is saved.
 
 name: CI
 
 on:
   push:
     branches: [main]
+    paths-ignore: ["docs/**", "**.md"]
   pull_request:
+    paths-ignore: ["docs/**", "**.md"]
 
 permissions: {}
 
@@ -26,36 +33,6 @@ env:
   RUST_BACKTRACE: "1"
 
 jobs:
-  workflows:
-    name: Workflows (actionlint, zizmor)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      # actionlint has no action of its own: its release archive, checked against the sha256 its
-      # release publishes (actionlint_1.7.12_checksums.txt), so nothing unpinned runs here.
-      - name: Download actionlint 1.7.12
-        env:
-          URL: https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
-          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
-        run: |
-          set -euo pipefail
-          curl -fsSL -o "$RUNNER_TEMP/actionlint.tar.gz" "$URL"
-          echo "$SHA256  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check --strict
-          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
-      - name: actionlint
-        run: '"$RUNNER_TEMP/actionlint" -color'
-      - name: zizmor
-        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
-        with:
-          persona: pedantic
-          advanced-security: false
-          version: 1.31.1
-
   linux:
     name: Linux (script/check)
     runs-on: ubuntu-24.04
@@ -74,6 +51,9 @@ jobs:
             xvfb mesa-vulkan-drivers libvulkan1
       - name: Rust toolchain (rust-toolchain.toml)
         run: rustup toolchain install && rustc --version
+      - name: Cache key
+        id: key
+        run: echo "hash=$(bash script/ci-cache key)" >> "$GITHUB_OUTPUT"
       - name: Restore main's cache
         id: cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -82,8 +62,8 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             target
-          key: linux-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: linux-
+          key: linux-deps-${{ steps.key.outputs.hash }}
+          restore-keys: linux-deps-
       - name: script/check
         run: bash script/check
       - name: The harness scenarios' screenshots and logs
@@ -94,9 +74,9 @@ jobs:
           path: target/e2e-harness
           retention-days: 7
           if-no-files-found: ignore
-      - name: Trim the cache (main, once per Cargo.lock)
+      - name: Trim the cache (main, once per set of dependencies)
         if: ${{ !cancelled() && github.event_name == 'push' && steps.cache.outputs.cache-hit != 'true' }}
-        run: rm -rf target/debug/incremental target/e2e-harness
+        run: bash script/ci-cache trim
       - if: ${{ !cancelled() && github.event_name == 'push' && steps.cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -104,7 +84,7 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             target
-          key: linux-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          key: linux-deps-${{ steps.key.outputs.hash }}
 
   windows:
     name: Windows (script/check --fast)
@@ -112,6 +92,9 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
+    env:
+      # rust-lld, the toolchain's own linker, links the test binaries faster than link.exe.
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER: rust-lld
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -119,6 +102,10 @@ jobs:
       - name: Rust toolchain (rust-toolchain.toml)
         shell: bash
         run: rustup toolchain install && rustc --version
+      - name: Cache key
+        id: key
+        shell: bash
+        run: echo "hash=$(bash script/ci-cache key)" >> "$GITHUB_OUTPUT"
       - name: Restore main's cache
         id: cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -127,8 +114,8 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             target
-          key: windows-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: windows-
+          key: windows-deps-${{ steps.key.outputs.hash }}
+          restore-keys: windows-deps-
       # The runner's own temp dir, whose name is long: the default one is spelled with an 8.3
       # short name (C:\Users\RUNNER~1\…), which the file system reports long.
       - name: script/check --fast
@@ -136,10 +123,10 @@ jobs:
         run: |
           export TMP="$RUNNER_TEMP" TEMP="$RUNNER_TEMP"
           bash script/check --fast
-      - name: Trim the cache (main, once per Cargo.lock)
+      - name: Trim the cache (main, once per set of dependencies)
         if: ${{ !cancelled() && github.event_name == 'push' && steps.cache.outputs.cache-hit != 'true' }}
         shell: bash
-        run: rm -rf target/debug/incremental
+        run: bash script/ci-cache trim
       - if: ${{ !cancelled() && github.event_name == 'push' && steps.cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -147,7 +134,7 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             target
-          key: windows-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          key: windows-deps-${{ steps.key.outputs.hash }}
 
   macos:
     name: macOS (script/check --fast)
@@ -161,6 +148,9 @@ jobs:
           persist-credentials: false
       - name: Rust toolchain (rust-toolchain.toml)
         run: rustup toolchain install && rustc --version
+      - name: Cache key
+        id: key
+        run: echo "hash=$(bash script/ci-cache key)" >> "$GITHUB_OUTPUT"
       - name: Restore main's cache
         id: cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -169,13 +159,13 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             target
-          key: macos-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: macos-
+          key: macos-deps-${{ steps.key.outputs.hash }}
+          restore-keys: macos-deps-
       - name: script/check --fast
         run: bash script/check --fast
-      - name: Trim the cache (main, once per Cargo.lock)
+      - name: Trim the cache (main, once per set of dependencies)
         if: ${{ !cancelled() && github.event_name == 'push' && steps.cache.outputs.cache-hit != 'true' }}
-        run: rm -rf target/debug/incremental
+        run: bash script/ci-cache trim
       - if: ${{ !cancelled() && github.event_name == 'push' && steps.cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -183,4 +173,4 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             target
-          key: macos-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          key: macos-deps-${{ steps.key.outputs.hash }}

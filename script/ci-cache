@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# CI's Rust cache (.github/workflows/ci.yml), which holds the dependencies' build outputs.
+#
+#   script/ci-cache key    the cache key's hash: what the dependencies' build outputs depend on
+#   script/ci-cache trim   remove what the next run can't reuse, before the cache is saved
+#
+# key: Cargo.lock without the workspace's own packages, the manifests without the workspace's
+# version, and rust-toolchain.toml. A release commit bumps the version alone, so it keeps the
+# cache it had instead of saving a copy. Carriage returns are dropped (Windows checkouts have
+# them) and the manifests are read in byte order (macOS's locale sorts `_` before `/`).
+#
+# trim: the workspace's own outputs (libraries, binaries, test binaries, build-script outputs),
+# incremental data and the harness's screenshots. Every run rebuilds the workspace anyway, as a
+# checkout gives every source file a new mtime, and a restored cache would otherwise carry every
+# earlier build of it. A unit's files carry the hash of its `.fingerprint/<package>-<hash>`
+# directory, so they are found by that hash, never by target name: a test target can share its
+# name with a dependency (toolbox_store's `open` test and the `open` crate).
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+
+case "${1:-}" in
+    key)
+        export LC_ALL=C
+        {
+            tr -d '\r' < Cargo.lock | awk 'BEGIN { RS = ""; ORS = "\n\n" }
+                !/^\[\[package\]\]/ || /\nsource = /'
+            tr -d '\r' < Cargo.toml | grep -v '^version = '
+            cat crates/*/Cargo.toml rust-toolchain.toml | tr -d '\r'
+        } | git hash-object --stdin
+        ;;
+    trim)
+        target="${CARGO_TARGET_DIR:-$root/target}"
+        debug="$target/debug"
+        shopt -s nullglob
+        for package in $(cargo metadata --no-deps --format-version 1 | jq -r '.packages[].name'); do
+            for fingerprint in "$debug/.fingerprint/$package"-*; do
+                hash="${fingerprint##*-}"
+                rm -rf "$fingerprint" "$debug/build/$package-$hash" "$debug/deps/"*"-$hash" \
+                    "$debug/deps/"*"-$hash".*
+            done
+        done
+        for file in "$debug"/*; do
+            if [[ -f "$file" ]]; then
+                rm -f "$file"
+            fi
+        done
+        rm -rf "$debug/incremental" "$debug/examples" "$target/e2e-harness"
+        du -sh "$target"
+        ;;
+    *)
+        echo "usage: script/ci-cache key|trim" >&2
+        exit 2
+        ;;
+esac
