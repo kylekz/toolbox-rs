@@ -305,15 +305,15 @@ fn real_main<A: RunnerApp>(app: &mut A) -> Result<ExitCode> {
         }
     }
     let jobs = cli.jobs.min(runnable.len()).max(1);
+    let in_front = runnable
+        .iter()
+        .filter(|scenario| !config.runs_in_background(scenario))
+        .count();
     println!(
-        "e2e: {} scenario(s) against {} in the {} on {}{}",
+        "e2e: {} scenario(s) against {} {} on {}{}",
         runnable.len(),
         config.app.display(),
-        if config.background {
-            "background"
-        } else {
-            "foreground"
-        },
+        run_mode(config.background, runnable.len() - in_front, in_front),
         display.description,
         if jobs > 1 {
             format!(", {jobs} at a time")
@@ -384,6 +384,20 @@ fn real_main<A: RunnerApp>(app: &mut A) -> Result<ExitCode> {
     })
 }
 
+/**
+ * Where a run's scenarios open their windows, for its first line: a background run still starts
+ * a scenario whose header asks for the foreground in front. With no scenario to run, the run's
+ * own mode.
+ */
+fn run_mode(run_background: bool, behind: usize, in_front: usize) -> String {
+    match (behind, in_front) {
+        (0, 0) if !run_background => "in the foreground".to_string(),
+        (_, 0) => "in the background".to_string(),
+        (0, _) => "in the foreground".to_string(),
+        (_, in_front) => format!("in the background, {in_front} of them in the foreground"),
+    }
+}
+
 /// Runs `scenario`, printing its start and its result.
 fn run_one(
     scenario: &Scenario,
@@ -391,7 +405,16 @@ fn run_one(
     ext: &dyn Extension,
     watch: Option<&foreground::Watch>,
 ) -> Outcome {
-    println!("---- {} ({})", scenario.name, scenario.path.display());
+    println!(
+        "---- {} ({}){}",
+        scenario.name,
+        scenario.path.display(),
+        if config.background && !config.runs_in_background(scenario) {
+            ", in the foreground"
+        } else {
+            ""
+        }
+    );
     if config.verbose
         && let Some(description) = &scenario.header.description
     {
@@ -434,6 +457,19 @@ mod tests {
 
     fn parse(list: &[&str]) -> Result<Option<Cli>> {
         parse_cli(&mut DemoApp, args(list))
+    }
+
+    #[test]
+    fn the_run_names_the_mode_its_scenarios_run_in() {
+        assert_eq!(run_mode(true, 2, 0), "in the background");
+        assert_eq!(run_mode(true, 0, 1), "in the foreground");
+        assert_eq!(run_mode(false, 0, 2), "in the foreground");
+        assert_eq!(run_mode(false, 0, 0), "in the foreground");
+        assert_eq!(run_mode(true, 0, 0), "in the background");
+        assert_eq!(
+            run_mode(true, 2, 1),
+            "in the background, 1 of them in the foreground"
+        );
     }
 
     #[test]

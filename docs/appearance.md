@@ -270,10 +270,10 @@ screen` captures.
   - **Transparency effects off:** available `opaque`, and every capture was Opaque.
   - **The frame** matched each capture's light/dark.
 
-  **Open, not the crate's:** every Windows screen capture, Opaque ones included, shows a 1–2 px
-  strip of what is behind the window along its top edge. Either `gpui_automation`'s `screen`
-  rectangle starts above the client area, or gpui's top resize border isn't covered by the
-  window's fill. To look into with the next Windows automation work.
+  **The top strip, not the crate's:** every Windows screen capture, Opaque ones included, showed
+  a 2 px strip of what is behind the window along its top edge. It is DWM's top border over the
+  client area gpui stretches to the window's top edge; `gpui_automation` leaves those rows
+  out of both sources (docs/automation.md "Screenshots").
 
 ## Adopting it
 
