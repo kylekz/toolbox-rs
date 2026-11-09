@@ -36,6 +36,10 @@ don't are `toolbox_*` (the automation family keeps its `gpui_automation_*` names
   - The runner's mode line reports foreground scenarios as running in the foreground.
 
   No app depends on a capture's pixel size, so the apps can take it at their next change.
+- **`v0.5.2`** makes `toolbox_stills`' WIC decode size its pixel buffer from the size it asked
+  for. When WIC reports any other size, as its GPU-backed HEIF decoder did once after a GPU
+  driver reset (230,207² pixels for a 64×64 picture), that decode fails as unreadable instead of
+  aborting the app on a 212 GB allocation. slide and fc should take it.
 - **The stack:** `gpui-pre =0.3.11`, `gpui-pre-platform =0.3.11`, `gpui-component =0.9.0`
   (gpui-kit 0.9). Each is pinned on its own, as the apps do, not through the `gpui-kit` umbrella.
   Rust 1.98.1, edition 2024, resolver 3, as in all three apps.
