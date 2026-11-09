@@ -32,7 +32,7 @@ use std::io::Cursor;
 use std::os::windows::ffi::{OsStrExt as _, OsStringExt as _};
 use std::path::{Path, PathBuf};
 
-use windows::Win32::Foundation::{GENERIC_READ, WINCODEC_ERR_COMPONENTNOTFOUND};
+use windows::Win32::Foundation::{E_UNEXPECTED, GENERIC_READ, WINCODEC_ERR_COMPONENTNOTFOUND};
 use windows::Win32::Graphics::Imaging::{
     CLSID_WICImagingFactory2, GUID_WICPixelFormat32bppBGRA, IWICBitmapDecoder,
     IWICBitmapFrameDecode, IWICBitmapSource, IWICColorContext, IWICImagingFactory,
@@ -143,12 +143,22 @@ fn decode_wic(
         image = transform.cast()?;
     }
 
+    /*
+     * The chain makes exactly the fitted size. The buffer is sized from that, never from what
+     * the chain reports: a size WIC gets wrong fails the decode instead of being allocated.
+     */
     let (mut out_w, mut out_h) = (0, 0);
     unsafe { image.GetSize(&mut out_w, &mut out_h) }?;
-    let mut pixels = vec![0u8; out_w as usize * out_h as usize * 4];
-    unsafe { image.CopyPixels(std::ptr::null(), out_w * 4, &mut pixels) }?;
+    if (out_w, out_h) != (target_w, target_h) {
+        return Err(windows::core::Error::new(
+            E_UNEXPECTED,
+            format!("{out_w}×{out_h} pixels where {target_w}×{target_h} were asked for"),
+        ));
+    }
+    let mut pixels = vec![0u8; target_w as usize * target_h as usize * 4];
+    unsafe { image.CopyPixels(std::ptr::null(), target_w * 4, &mut pixels) }?;
     Ok(Fitted {
-        image: Bgra::new(out_w, out_h, pixels).expect("the buffer is sized from the image"),
+        image: Bgra::new(target_w, target_h, pixels).expect("the buffer is sized from the fit"),
         source: displayed,
     })
 }
